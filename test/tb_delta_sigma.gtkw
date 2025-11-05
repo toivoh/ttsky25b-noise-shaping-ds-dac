@@ -1,0 +1,85 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun Nov  2 08:44:34 2025
+[*]
+[dumpfile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_delta_sigma.vcd"
+[dumpfile_mtime] "Sun Nov  2 08:40:28 2025"
+[dumpfile_size] 34005
+[savefile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_delta_sigma.gtkw"
+[timestart] 0
+[size] 2681 967
+[pos] -1 -1
+*-28.000000 520000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_delta_sigma.
+[sst_width] 297
+[signals_width] 223
+[sst_expanded] 1
+[sst_vpaned_height] 286
+@420
+tb_delta_sigma.counter
+@28
+tb_delta_sigma.rst_n
+tb_delta_sigma.clk
+@200
+-
+@22
+tb_delta_sigma.u[15:0]
+@200
+-
+@421
+tb_delta_sigma.sample_counter
+@22
+tb_delta_sigma.y_sampled[8:0]
+@28
+tb_delta_sigma.y_valid
+@22
+tb_delta_sigma.y[8:0]
+@200
+-
+@22
+tb_delta_sigma.modulator.state[3:0]
+@200
+-
+-
+@22
+tb_delta_sigma.sreg0[7:0]
+tb_delta_sigma.modulator.sreg_out[7:0]
+@200
+-
+@22
+tb_delta_sigma.modulator.src2[16:0]
+@200
+-
+@22
+tb_delta_sigma.modulator.sum[16:0]
+tb_delta_sigma.modulator.err[7:0]
+@200
+-
+@28
+tb_delta_sigma.modulator.inv_acc
+tb_delta_sigma.modulator.src2_sel
+@22
+tb_delta_sigma.modulator.rshift_count[3:0]
+@28
+tb_delta_sigma.modulator.inv_src2
+@200
+-
+@28
+tb_delta_sigma.modulator.shift_sreg
+tb_delta_sigma.modulator.rotate_sreg
+@200
+-
+-
+-error response
+@28
+tb_delta_sigma.force_err
+@22
+tb_delta_sigma.forced_err_value[7:0]
+@200
+-
+@28
+tb_delta_sigma.y_valid
+@22
+tb_delta_sigma.acc_sampled[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

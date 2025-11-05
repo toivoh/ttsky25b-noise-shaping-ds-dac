@@ -1,0 +1,53 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Mon Nov  3 06:18:50 2025
+[*]
+[dumpfile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_ds_pwm.vcd"
+[dumpfile_mtime] "Mon Nov  3 06:18:38 2025"
+[dumpfile_size] 34953
+[savefile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_ds_pwm.gtkw"
+[timestart] 0
+[size] 2164 767
+[pos] -1 -1
+*-28.000000 985000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_ds_pwm.
+[treeopen] tb_ds_pwm.modulator.
+[treeopen] tb_ds_pwm.modulator.ds_mod.
+[sst_width] 297
+[signals_width] 174
+[sst_expanded] 1
+[sst_vpaned_height] 216
+@420
+tb_ds_pwm.counter
+tb_ds_pwm.sample_counter
+@28
+tb_ds_pwm.rst_n
+tb_ds_pwm.clk
+@200
+-
+@22
+tb_ds_pwm.u[15:0]
+@200
+-
+@22
+tb_ds_pwm.modulator.y[8:0]
+tb_ds_pwm.modulator.ds_mod.state[3:0]
+tb_ds_pwm.modulator.pulse_width[8:0]
+@200
+-
+@28
+tb_ds_pwm.modulator.pw_modulator.pulse_done
+@200
+-
+@28
+tb_ds_pwm.modulator.ds_mod.y_valid
+tb_ds_pwm.modulator.ds_mod.en
+@200
+-
+@22
+tb_ds_pwm.modulator.pw_modulator.compare_value[8:0]
+tb_ds_pwm.modulator.pw_modulator.pulse_width[8:0]
+@29
+tb_ds_pwm.modulator.pw_modulator.pwm_out
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,40 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Mon Nov  3 05:28:25 2025
+[*]
+[dumpfile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_pulse_width_modulator.vcd"
+[dumpfile_mtime] "Mon Nov  3 05:28:06 2025"
+[dumpfile_size] 4647
+[savefile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_pulse_width_modulator.gtkw"
+[timestart] 0
+[size] 1952 969
+[pos] -1 -1
+*-26.000000 109700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_pulse_width_modulator.
+[sst_width] 297
+[signals_width] 182
+[sst_expanded] 1
+[sst_vpaned_height] 287
+@420
+tb_pulse_width_modulator.counter
+@28
+tb_pulse_width_modulator.rst_n
+tb_pulse_width_modulator.clk
+@200
+-
+@28
+tb_pulse_width_modulator.pw_modulator.direction
+@22
+tb_pulse_width_modulator.pw_modulator.compare_value[10:0]
+@420
+tb_pulse_width_modulator.sample_counter
+@28
+tb_pulse_width_modulator.pw_modulator.pulse_done
+@200
+-
+@22
+tb_pulse_width_modulator.pw_modulator.pulse_width[10:0]
+@29
+tb_pulse_width_modulator.pw_modulator.pwm_out
+[pattern_trace] 1
+[pattern_trace] 0

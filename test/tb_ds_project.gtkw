@@ -1,0 +1,131 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue Nov  4 11:51:35 2025
+[*]
+[dumpfile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_ds_project.vcd"
+[dumpfile_mtime] "Tue Nov  4 11:51:06 2025"
+[dumpfile_size] 2748
+[savefile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_ds_project.gtkw"
+[timestart] 239200000
+[size] 2403 1271
+[pos] -1 -1
+*-25.000000 376100000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_ds_project.
+[treeopen] tb_ds_project.user_project.
+[treeopen] tb_ds_project.user_project.modulator.
+[treeopen] tb_ds_project.user_project.modulator.ds_mod.
+[sst_width] 297
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 393
+@28
+tb_ds_project.rst_n
+tb_ds_project.clk
+@200
+-
+@28
+tb_ds_project.user_project.addr[2:0]
+@22
+tb_ds_project.user_project.data_in[7:0]
+tb_ds_project.user_project.data_low[7:0]
+@c00022
+tb_ds_project.user_project.data16_in[15:0]
+@28
+(0)tb_ds_project.user_project.data16_in[15:0]
+(1)tb_ds_project.user_project.data16_in[15:0]
+(2)tb_ds_project.user_project.data16_in[15:0]
+(3)tb_ds_project.user_project.data16_in[15:0]
+(4)tb_ds_project.user_project.data16_in[15:0]
+(5)tb_ds_project.user_project.data16_in[15:0]
+(6)tb_ds_project.user_project.data16_in[15:0]
+(7)tb_ds_project.user_project.data16_in[15:0]
+(8)tb_ds_project.user_project.data16_in[15:0]
+(9)tb_ds_project.user_project.data16_in[15:0]
+(10)tb_ds_project.user_project.data16_in[15:0]
+(11)tb_ds_project.user_project.data16_in[15:0]
+(12)tb_ds_project.user_project.data16_in[15:0]
+(13)tb_ds_project.user_project.data16_in[15:0]
+(14)tb_ds_project.user_project.data16_in[15:0]
+(15)tb_ds_project.user_project.data16_in[15:0]
+@1401200
+-group_end
+@28
+tb_ds_project.user_project.data16_we
+@200
+-
+@22
+tb_ds_project.reg0[15:0]
+tb_ds_project.reg1[15:0]
+tb_ds_project.reg2[15:0]
+@200
+-
+@22
+tb_ds_project.user_project.modulator.y[6:0]
+@28
+tb_ds_project.user_project.modulator.y_valid
+tb_ds_project.user_project.modulator.ds_mod.shift_sreg
+tb_ds_project.user_project.modulator.ds_mod.rotate_sreg
+@200
+-
+@28
+tb_ds_project.user_project.pulse_toggle
+tb_ds_project.user_project.data_part_in
+tb_ds_project.user_project.data16_we
+@22
+tb_ds_project.user_project.data16_in[15:0]
+@200
+-
+@28
+tb_ds_project.user_project.modulator.pw_modulator.r_pulse_done
+@22
+tb_ds_project.user_project.modulator.pw_modulator.compare_max[6:0]
+@28
+tb_ds_project.user_project.pulse_done
+@22
+tb_ds_project.user_project.modulator.pw_modulator.compare_value[6:0]
+@28
+tb_ds_project.user_project.modulator.pw_modulator.direction
+@200
+-
+@28
+tb_ds_project.user_project.modulator.pulse_done
+tb_ds_project.user_project.data16_we
+@200
+-
+@22
+tb_ds_project.user_project.modulator.y[6:0]
+tb_ds_project.user_project.modulator.pulse_width[6:0]
+@28
+tb_ds_project.user_project.modulator.y_valid
+@200
+-
+@28
+tb_ds_project.user_project.modulator.pulse_done
+@200
+-
+@22
+tb_ds_project.user_project.modulator.ds_mod.err[15:0]
+tb_ds_project.user_project.modulator.ds_mod.u[21:0]
+tb_ds_project.user_project.modulator.ds_mod.acc[19:0]
+tb_ds_project.user_project.modulator.ds_mod.sum[22:0]
+tb_ds_project.user_project.modulator.ds_mod.u_rshift[3:0]
+@200
+-
+@28
+tb_ds_project.user_project.modulator.pw_modulator.pulse_done
+@29
+tb_ds_project.user_project.modulator.ds_mod.en
+@28
+tb_ds_project.user_project.modulator.ds_mod.y_valid
+tb_ds_project.user_project.modulator.ds_mod.shift_sreg
+tb_ds_project.user_project.modulator.ds_mod.rotate_sreg
+@200
+-
+@22
+tb_ds_project.user_project.modulator.ds_mod.err[15:0]
+tb_ds_project.sreg0[15:0]
+tb_ds_project.sreg1[15:0]
+tb_ds_project.sreg2[15:0]
+tb_ds_project.user_project.modulator.ds_mod.acc[19:0]
+[pattern_trace] 1
+[pattern_trace] 0
