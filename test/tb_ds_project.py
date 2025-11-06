@@ -9,6 +9,9 @@ FRAC_BITS = 16
 PWM_BITS  = 8
 IN_BITS = 23
 
+#MIN_PERIOD = 7
+MIN_PERIOD = 9
+
 MAX_U_RSHIFT = IN_BITS - 16
 PW_MASK = (1 << PWM_BITS) - 1
 
@@ -60,7 +63,7 @@ async def test_delta_sigma(dut, u_rshift):
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
-	period = 7
+	period = MIN_PERIOD
 
 	u_lshift = MAX_U_RSHIFT - u_rshift
 	eff_frac_bits = FRAC_BITS - u_lshift
@@ -129,7 +132,7 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
-	period = 7
+	period = MIN_PERIOD
 	reg1_value = (1<<14) | period
 	await write_reg(dut, 1, reg1_value)
 	reg2_value = 0x1234
