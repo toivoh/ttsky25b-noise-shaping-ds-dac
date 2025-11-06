@@ -44,8 +44,8 @@ def sext(x, nbits):
 	return x
 
 class DeltaSigma:
-	def __init__(self, FRAC_BITS, coeffs):
-		self.FRAC_BITS = FRAC_BITS
+	def __init__(self, noise_mode, coeffs):
+		self.noise_mode = noise_mode
 		self.coeffs = coeffs
 		self.n = len(coeffs)
 		self.correction = 0
@@ -65,23 +65,24 @@ class DeltaSigma:
 		noise2 = bit_shuffle(bit_permutation, noise)
 		quant_noise2 = sext(noise2 >> (LFSR_BITS-FRAC_BITS), FRAC_BITS)
 
-		#quant_noise = 0
-		#quant_noise = quant_noise1 # rectangle noise
-		quant_noise = quant_noise1 - quant_noise2 # triangle noise
+		if self.noise_mode == 0: quant_noise = 0
+		elif self.noise_mode == 1: quant_noise = quant_noise1 # rectangle noise
+		elif self.noise_mode == 3: quant_noise = quant_noise1 - quant_noise2 # triangle noise
+		else: raise Error("invalid noise mode")
 
 #		print("quant_noise =", hex(quant_noise))
 
 		x = self.correction + u
 		target = x - ONE_HALF
 
-		y = (target + ONE_HALF + quant_noise) >> self.FRAC_BITS
-		error = target - (y << self.FRAC_BITS)
+		y = (target + ONE_HALF + quant_noise) >> FRAC_BITS
+		error = target - (y << FRAC_BITS)
 
 
 #		x_pn = x + quant_noise
-#		assert x_pn >> self.FRAC_BITS == y
-#		err1 = x_pn & ((1 << self.FRAC_BITS)-1)
-#		err1 -= (1 << (self.FRAC_BITS-1))
+#		assert x_pn >> FRAC_BITS == y
+#		err1 = x_pn & ((1 << FRAC_BITS)-1)
+#		err1 -= (1 << (FRAC_BITS-1))
 
 
 
@@ -124,7 +125,7 @@ async def write_reg(dut, addr, value):
 	await ClockCycles(dut.clk, 3)
 
 
-async def test_delta_sigma(dut, u_rshift):
+async def test_delta_sigma(dut, u_rshift, noise_mode):
 	dut.uio_in.value = 16
 	dut.rst_n.value = 0
 	await ClockCycles(dut.clk, 10)
@@ -137,6 +138,7 @@ async def test_delta_sigma(dut, u_rshift):
 	frac_mask = (1 << eff_frac_bits) - 1
 	int_mask = ((1 << 16) - 1) & ~frac_mask
 
+	await write_reg(dut, 2, (noise_mode&3) << 14)
 	reg1_value = (period&255) | ((u_rshift&15) << 8)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
@@ -144,8 +146,8 @@ async def test_delta_sigma(dut, u_rshift):
 	await ClockCycles(dut.clk, 1)
 
 
-#	ds = DeltaSigma(FRAC_BITS, [1, -4, 6, -4])
-	ds = DeltaSigma(FRAC_BITS, [-1, 4, -6, 4])
+#	ds = DeltaSigma(noise_mode, [1, -4, 6, -4])
+	ds = DeltaSigma(noise_mode, [-1, 4, -6, 4])
 
 	# Wait for the first toggle on pulse_toggle
 	pt = dut.uio_out.value[0]
@@ -210,7 +212,9 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 1)
 	if rtl: assert top.registers[2].value.integer == reg2_value
 
-	for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):
-		print("\nu_rshift =", u_rshift)
-		await test_delta_sigma(dut, u_rshift)
+	for noise_mode in [0, 1, 3]:
+		print("\nnoise_mode =", noise_mode)
+		for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):
+			print("\nu_rshift =", u_rshift)
+			await test_delta_sigma(dut, u_rshift, noise_mode)
 

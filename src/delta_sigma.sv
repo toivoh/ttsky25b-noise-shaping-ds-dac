@@ -53,13 +53,14 @@ module delta_sigma_modulator #(
 		SREG_INT_BITS = 2
 	) (
 		input wire clk, reset, en,
+		input wire reset_lfsr,
 
 		input wire [IN_BITS-1:0] u, // input signal
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
+		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
+
 		output wire y_valid_out,
 		output wire [OUT_BITS-1:0] y, // output signal
-
-		input wire reset_lfsr,
 
 		// for testing
 		input wire force_err,
@@ -188,9 +189,9 @@ module delta_sigma_modulator #(
 				y_valid = 1;
 			end
 */
-			0: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; end // Add uniform noise
+			0: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[0]; end // Add uniform noise if noise_mode[0]
 			1: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end // permute lfsr_state
-			2: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; end // Subtract uniform noise ==> triangle noise
+			2: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[1]; end // Subtract uniform noise ==> triangle noise if noise_mode[1]
 
 			3: begin
 				// Read new input, produce new output
@@ -201,9 +202,9 @@ module delta_sigma_modulator #(
 				y_valid = 1;
 			end
 
-			4: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; end // Add back uniform noise
+			4: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[1]; end // Add back uniform noise if noise_mode[1]
 			5: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end // permute lfsr_state
-			6: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; end // Subtract away uniform noise
+			6: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[0]; end // Subtract away uniform noise if noise_mode[0]
 
 			7: begin
 				// Shift acc+0 -> shift register -> acc
@@ -392,6 +393,7 @@ module delta_sigma_pw_modulator #(
 
 		input wire [IN_BITS-1:0] u, // input signal, sampled at pulse done
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
+		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 
 		input wire dual_slope_en, double_slope_en,
 		input wire [PWM_BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)
@@ -415,7 +417,7 @@ module delta_sigma_pw_modulator #(
 
 	delta_sigma_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .OUT_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS), .SHIFT_COUNT_BITS(SHIFT_COUNT_BITS), .MAX_LEFT_SHIFT(MAX_LEFT_SHIFT)) ds_mod(
 		.clk(clk), .reset(reset), .en(!y_valid || pulse_done), .reset_lfsr(reset_lfsr),
-		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value),
+		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value), .noise_mode(noise_mode),
 		.y(y), .y_valid_out(y_valid)
 	);
 	pulse_width_modulator #(.BITS(PWM_BITS)) pw_modulator(
