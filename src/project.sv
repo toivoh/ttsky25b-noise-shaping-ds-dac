@@ -89,7 +89,7 @@ module tt_um_toivoh_delta_sigma #(
 	);
 
 	reg pulse_toggle;
-	reg [15:0] pulse_counter;
+	reg [7:0] pulse_counter;
 	always_ff @(posedge clk) begin
 		if (reset) begin
 			pulse_toggle <= 0;
