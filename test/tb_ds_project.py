@@ -13,7 +13,7 @@ PWM_BITS  = 8
 IN_BITS = 23
 LFSR_BITS = 22
 
-MIN_PERIOD = 12
+MIN_PERIOD = 16
 
 ONE_HALF = 1 << (FRAC_BITS - 1)
 MAX_U_RSHIFT = IN_BITS - 16
@@ -61,8 +61,14 @@ class DeltaSigma:
 		noise = decorrelate(self.lfsr_state, self.n_decorrelate)
 #		print("model: lfsr_state =", hex(self.lfsr_state), ", noise =", hex(noise))
 
-		quant_noise = sext(noise >> (LFSR_BITS-FRAC_BITS), FRAC_BITS)
+		quant_noise1 = sext(noise >> (LFSR_BITS-FRAC_BITS), FRAC_BITS)
+		noise2 = bit_shuffle(bit_permutation, noise)
+		quant_noise2 = sext(noise2 >> (LFSR_BITS-FRAC_BITS), FRAC_BITS)
+
 		#quant_noise = 0
+		#quant_noise = quant_noise1 # rectangle noise
+		quant_noise = quant_noise1 - quant_noise2 # triangle noise
+
 #		print("quant_noise =", hex(quant_noise))
 
 		x = self.correction + u
