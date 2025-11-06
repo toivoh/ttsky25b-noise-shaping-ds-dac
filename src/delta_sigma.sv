@@ -59,6 +59,8 @@ module delta_sigma_modulator #(
 		output wire y_valid_out,
 		output wire [OUT_BITS-1:0] y, // output signal
 
+		input wire reset_lfsr,
+
 		// for testing
 		input wire force_err,
 		input wire [FRAC_BITS-1:0] forced_err_value
@@ -187,6 +189,12 @@ module delta_sigma_modulator #(
 			end
 */
 			0: begin
+				// Add uniform noise
+				src2_sel = `SRC2_SEL_NOISE1;
+				rshift_count = 0;
+				//src2_en = 0; // disable
+			end
+			1: begin
 				// Read new input, produce new output
 				src2_sel = `SRC2_SEL_U;
 				rshift_count = u_rshift;
@@ -194,28 +202,35 @@ module delta_sigma_modulator #(
 				truncate_acc = 1;
 				y_valid = 1;
 			end
-			1: begin
+			2: begin
+				// Subtract uniform noise
+				src2_sel = `SRC2_SEL_NOISE1;
+				inv_src2 = 1;
+				rshift_count = 0;
+				//src2_en = 0; // disable
+			end
+			3: begin
 				// Shift acc+0 -> shift register -> acc
 				src2_en = 0;
 				shift_sreg = 1; rotate_sreg = 0;
 			end
-			2: begin
+			4: begin
 				// [4 -1]
 				inv_src1 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
 			end
 			// [-6]
-			3: begin
+			5: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 			end
-			4: begin
+			6: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 1; // *2
 				shift_sreg = 1;
 			end
-			5: begin
+			7: begin
 				// [4]
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
@@ -223,12 +238,12 @@ module delta_sigma_modulator #(
 				//last_state = 1;
 			end
 			// Recorrelate lfsr_state
-			6: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			7: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
+			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			9: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
 			//8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
+			10: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
 			// Decorrelate lfsr_state
-			9: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
+			11: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
 
@@ -272,13 +287,16 @@ module delta_sigma_modulator #(
 	wire [LFSR_BITS-1:0] next_lfsr_state;
 
 	always_ff @(posedge clk) begin
-		if (reset) begin 
-			acc <= '0;
+		if (reset || reset_lfsr) begin 
 			lfsr_state <= '0;
-			//lfsr_state <= 'h123456;
+		end else begin
+			if (en && dest_sel == `DEST_SEL_LFSR_STATE) lfsr_state <= next_lfsr_state;
+		end
+
+		if (reset || reset_lfsr) begin 
+			acc <= '0;
 		end else begin
 			if (en && dest_sel == `DEST_SEL_ACC) acc <= next_acc;
-			if (en && dest_sel == `DEST_SEL_LFSR_STATE) lfsr_state <= next_lfsr_state;
 		end
 	end
 
@@ -335,7 +353,8 @@ module delta_sigma_modulator #(
 	always_comb begin
 		next_acc_sum = sum[ACC_BITS-1:0];
 		// truncate and sign extend with inverted sign
-		if (truncate_acc) next_acc_sum[SREG_BITS-1:FRAC_BITS-1] = !sum[FRAC_BITS-1] ? '1 : '0;
+		//if (truncate_acc) next_acc_sum[SREG_BITS-1:FRAC_BITS-1] = !sum[FRAC_BITS-1] ? '1 : '0;
+		if (truncate_acc) next_acc_sum[ACC_BITS-1:FRAC_BITS-1] = !sum[FRAC_BITS-1] ? '1 : '0;
 	end
 
 
@@ -373,6 +392,7 @@ module delta_sigma_pw_modulator #(
 		MAX_LEFT_SHIFT = 2
 	) (
 		input wire clk, reset,
+		input wire reset_lfsr,
 
 		input wire [IN_BITS-1:0] u, // input signal, sampled at pulse done
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
@@ -398,7 +418,7 @@ module delta_sigma_pw_modulator #(
 	end
 
 	delta_sigma_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .OUT_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS), .SHIFT_COUNT_BITS(SHIFT_COUNT_BITS), .MAX_LEFT_SHIFT(MAX_LEFT_SHIFT)) ds_mod(
-		.clk(clk), .reset(reset), .en(!y_valid || pulse_done),
+		.clk(clk), .reset(reset), .en(!y_valid || pulse_done), .reset_lfsr(reset_lfsr),
 		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value),
 		.y(y), .y_valid_out(y_valid)
 	);

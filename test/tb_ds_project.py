@@ -5,15 +5,43 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
+SHORT_TEST = False
+#SHORT_TEST = True  # !!!!
+
 FRAC_BITS = 16
 PWM_BITS  = 8
 IN_BITS = 23
+LFSR_BITS = 22
 
-#MIN_PERIOD = 7
-MIN_PERIOD = 9
+MIN_PERIOD = 12
 
+ONE_HALF = 1 << (FRAC_BITS - 1)
 MAX_U_RSHIFT = IN_BITS - 16
 PW_MASK = (1 << PWM_BITS) - 1
+LFSR_BITS_HALF = LFSR_BITS >> 1
+LFSR_MASK = (1 << LFSR_BITS) - 1
+LFSR_MASK_M1 = (1 << (LFSR_BITS-1)) - 1
+LFSR_MASK_LOW = (1 << LFSR_BITS_HALF) - 1
+
+bit_permutation = [21, 17, 12, 19, 13, 20, 15, 11, 16, 14, 18, 7, 2, 4, 9, 6, 8, 1, 10, 3, 5, 0]
+
+def bit_shuffle(p, x):
+	y = 0
+	for (i, j) in enumerate(p):
+		y |= ((x>>j)&1)<<i
+	return y
+
+def decorrelate(x, n):
+	for i in range(n):
+		x = bit_shuffle(bit_permutation, x)
+		x = (x + ((x & LFSR_MASK_LOW) << LFSR_BITS_HALF))
+	return x & LFSR_MASK
+
+def sext(x, nbits):
+	x += (1 << (nbits-1))
+	x &= (1 << nbits) - 1
+	x -= (1 << (nbits-1))
+	return x
 
 class DeltaSigma:
 	def __init__(self, FRAC_BITS, coeffs):
@@ -22,19 +50,52 @@ class DeltaSigma:
 		self.n = len(coeffs)
 		self.correction = 0
 		self.errors = [0]*self.n
+		self.lfsr_state = 0
+		self.n_decorrelate = 1
 
 	def process(self, u):
+		# update LFSR
+		lfsr_bit = 1 & ((self.lfsr_state >> (LFSR_BITS-1)) ^ ((self.lfsr_state >> (LFSR_BITS-2)) | ((self.lfsr_state & LFSR_MASK_M1) == 0) ))
+		self.lfsr_state = ((self.lfsr_state << 1) & LFSR_MASK) | lfsr_bit
+
+		noise = decorrelate(self.lfsr_state, self.n_decorrelate)
+#		print("model: lfsr_state =", hex(self.lfsr_state), ", noise =", hex(noise))
+
+		quant_noise = sext(noise >> (LFSR_BITS-FRAC_BITS), FRAC_BITS)
+		#quant_noise = 0
+#		print("quant_noise =", hex(quant_noise))
+
 		x = self.correction + u
-		y = x >> self.FRAC_BITS
-		x -= (1 << (self.FRAC_BITS-1))
-		x -= y << self.FRAC_BITS
-		error = x
+		target = x - ONE_HALF
+
+		y = (target + ONE_HALF + quant_noise) >> self.FRAC_BITS
+		error = target - (y << self.FRAC_BITS)
+
+
+#		x_pn = x + quant_noise
+#		assert x_pn >> self.FRAC_BITS == y
+#		err1 = x_pn & ((1 << self.FRAC_BITS)-1)
+#		err1 -= (1 << (self.FRAC_BITS-1))
+
+
+
+#		print("correction =", hex(self.correction))
+#		print("u =", hex(u))
+#		print("target =", hex(target))
+#		print("x =", hex(x))
+#		print("y =", hex(y))
+#		print("error =", hex(error))
+#
+#		print()
+#		print("x_pn =", hex(x_pn))
+#		print("err1 =", hex(err1))
+#		print()
 
 #		print("x =", x)
 #		print(self.errors)
 		self.errors.pop(0)
 #		print(self.errors)
-		self.errors.append(x)
+		self.errors.append(error)
 #		print(self.errors)
 
 		correction = 0
@@ -73,7 +134,7 @@ async def test_delta_sigma(dut, u_rshift):
 	reg1_value = (period&255) | ((u_rshift&15) << 8)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
-	await write_reg(dut, 1, reg1_value)
+	await write_reg(dut, 1, reg1_value | (1 << 12)) # turn on reset_lfsr (turns off after one pulse)
 	await ClockCycles(dut.clk, 1)
 
 
@@ -88,8 +149,9 @@ async def test_delta_sigma(dut, u_rshift):
 	pt = not pt
 
 #	print("pt = ", pt)
-	for i in range(256):
+#	for i in range(256):
 #	for i in range(4):
+	for i in range(4 if SHORT_TEST else 256):
 		u = i*i
 		# Alternate the integer bits between lowest and highest to test the range
 		u &= frac_mask
@@ -142,7 +204,7 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 1)
 	if rtl: assert top.registers[2].value.integer == reg2_value
 
-	for u_rshift in range(MAX_U_RSHIFT+1):
+	for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):
 		print("\nu_rshift =", u_rshift)
 		await test_delta_sigma(dut, u_rshift)
 

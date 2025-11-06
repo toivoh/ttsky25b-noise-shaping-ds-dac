@@ -57,6 +57,9 @@ module tt_um_toivoh_delta_sigma #(
 
 	wire data16_we = (data_part == 1 && last_data_part == 0);
 
+	wire pulse_done, pwm_out;
+	wire [PWM_BITS-1:0] pulse_width;
+
 	always_ff @(posedge clk) begin
 		if (reset) begin
 			registers[0] <= 1 << (FRAC_BITS - 1);
@@ -64,6 +67,8 @@ module tt_um_toivoh_delta_sigma #(
 			registers[2] <= '0;
 			// TODO: more registers?
 		end else begin
+			if (pulse_done) registers[1][12] <= 0; // TODO: better reset condition?
+
 			if (data16_we && addr == 0) registers[0] <= data16_in;
 			if (data16_we && addr == 1) registers[1] <= data16_in;
 			if (data16_we && addr == 2) registers[2] <= data16_in;
@@ -72,16 +77,15 @@ module tt_um_toivoh_delta_sigma #(
 	end
 
 	wire [IN_BITS-1:0] u = {registers[0], {(IN_BITS-16){1'b0}}};
+	wire [SHIFT_COUNT_BITS-1:0] u_rshift = registers[1][8+SHIFT_COUNT_BITS-1 -: SHIFT_COUNT_BITS];
+	wire reset_lfsr = registers[1][12];
 	wire force_err = registers[1][13];
 	wire dual_slope_en = registers[1][14];
 	wire double_slope_en = registers[1][15];
 	wire [PWM_BITS-1:0] compare_max = registers[1][PWM_BITS-1:0];
-	wire [SHIFT_COUNT_BITS-1:0] u_rshift = registers[1][8+SHIFT_COUNT_BITS-1 -: SHIFT_COUNT_BITS];
 
-	wire pulse_done, pwm_out;
-	wire [PWM_BITS-1:0] pulse_width;
 	delta_sigma_pw_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .PWM_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS)) modulator(
-		.clk(clk), .reset(reset),
+		.clk(clk), .reset(reset), .reset_lfsr(reset_lfsr),
 		.u(u), .u_rshift(u_rshift),
 		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .compare_max(compare_max),
 		.pulse_done(pulse_done), .pwm_out(pwm_out), .pulse_width_out(pulse_width),

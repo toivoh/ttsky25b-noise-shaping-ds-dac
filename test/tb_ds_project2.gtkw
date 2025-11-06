@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Thu Nov  6 05:50:11 2025
+[*] Thu Nov  6 12:00:15 2025
 [*]
 [dumpfile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project.vcd"
-[dumpfile_mtime] "Thu Nov  6 05:50:01 2025"
-[dumpfile_size] 325974
+[dumpfile_mtime] "Thu Nov  6 11:58:16 2025"
+[dumpfile_size] 4083
 [savefile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project2.gtkw"
-[timestart] 0
+[timestart] 460900000
 [size] 1780 978
 [pos] -1 -1
-*-25.000000 62700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.000000 613800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_ds_project.
 [treeopen] tb_ds_project.user_project.
 [treeopen] tb_ds_project.user_project.modulator.
@@ -42,7 +42,6 @@ tb_ds_project.user_project.modulator.ds_mod.force_err
 @22
 tb_ds_project.user_project.modulator.u[22:0]
 tb_ds_project.user_project.modulator.ds_mod.src2[23:0]
-tb_ds_project.user_project.modulator.ds_mod.acc[19:0]
 tb_ds_project.user_project.modulator.ds_mod.sum[23:0]
 tb_ds_project.user_project.modulator.ds_mod.y[7:0]
 @200
@@ -50,10 +49,11 @@ tb_ds_project.user_project.modulator.ds_mod.y[7:0]
 @28
 tb_ds_project.user_project.modulator.pulse_done
 @22
-tb_ds_project.user_project.modulator.ds_mod.err[15:0]
 tb_ds_project.sreg0[15:0]
 tb_ds_project.sreg1[15:0]
 tb_ds_project.sreg2[15:0]
+@23
+tb_ds_project.user_project.modulator.ds_mod.acc[21:0]
 @200
 -
 @22
@@ -65,17 +65,21 @@ tb_ds_project.user_project.pulse_toggle
 @22
 tb_ds_project.user_project.modulator.ds_mod.state[3:0]
 tb_ds_project.user_project.modulator.ds_mod.lfsr_state[21:0]
+tb_ds_project.user_project.modulator.ds_mod.acc[21:0]
 @200
 -
+@28
+tb_ds_project.user_project.modulator.ds_mod.reset_lfsr
+tb_ds_project.user_project.modulator.ds_mod.do_step_lfsr
 @22
 tb_ds_project.user_project.modulator.ds_mod.lfsr_state_permuted[21:0]
-tb_ds_project.user_project.modulator.ds_mod.rev_lfsr_state_permuted[21:0]
-tb_ds_project.user_project.modulator.ds_mod.lfsr_top_mask[21:0]
+tb_ds_project.user_project.modulator.ds_mod.next_lfsr_state_step[21:0]
 @200
 -
 @22
 tb_ds_project.user_project.modulator.ds_mod.src1[23:0]
-@23
 tb_ds_project.user_project.modulator.ds_mod.src2[23:0]
+@200
+-
 [pattern_trace] 1
 [pattern_trace] 0
