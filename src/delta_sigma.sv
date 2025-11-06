@@ -104,6 +104,7 @@ module delta_sigma_modulator #(
 	reg y_valid;
 	reg dest_sel;
 	reg do_step_lfsr;
+	reg truncate_acc;
 	always_comb begin
 		src1_sel = `SRC1_SEL_ACC;
 		src2_sel = `SRC2_SEL_SREG;
@@ -116,6 +117,7 @@ module delta_sigma_modulator #(
 		src2_en = 1;
 		dest_sel = `DEST_SEL_ACC;
 		do_step_lfsr = 0;
+		truncate_acc = 0;
 
 		/*
 		// For NUM_TAPS = 2
@@ -172,6 +174,7 @@ module delta_sigma_modulator #(
 		*/
 		// For NUM_TAPS = 4
 		case (state)
+/*
 			0: begin
 				// Read new input, produce new output
 				src2_sel = `SRC2_SEL_U;
@@ -179,23 +182,37 @@ module delta_sigma_modulator #(
 				shift_sreg = 1; rotate_sreg = 0;
 				y_valid = 1;
 			end
+*/
+			0: begin
+				// Read new input, produce new output
+				src2_sel = `SRC2_SEL_U;
+				rshift_count = u_rshift;
+				//shift_sreg = 1; rotate_sreg = 0;
+				truncate_acc = 1;
+				y_valid = 1;
+			end
 			1: begin
+				// Shift acc+0 -> shift register -> acc
+				src2_en = 0;
+				shift_sreg = 1; rotate_sreg = 0;
+			end
+			2: begin
 				// [4 -1]
 				inv_src1 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
 			end
 			// [-6]
-			2: begin
+			3: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 			end
-			3: begin
+			4: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 1; // *2
 				shift_sreg = 1;
 			end
-			4: begin
+			5: begin
 				// [4]
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
@@ -203,12 +220,12 @@ module delta_sigma_modulator #(
 				//last_state = 1;
 			end
 			// Recorrelate lfsr_state
-			5: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			6: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
-			//7: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			7: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
+			6: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			7: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
+			//8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
 			// Decorrelate lfsr_state
-			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
+			9: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
 		endcase
@@ -305,7 +322,16 @@ module delta_sigma_modulator #(
 	//wire [FULL_BITS-1:0] sum = (inv_src1 ? ~acc : acc) + src2 + $signed({1'b0, inv_src1 | inv_src2});
 	wire [FULL_BITS-1:0] sum = src1 + src2 + $signed({1'b0, inv_src1 | inv_src2});
 
-	wire signed [ACC_BITS-1:0] next_acc_sum = sum[ACC_BITS-1:0];
+	//wire signed [ACC_BITS-1:0] next_acc_sum = sum[ACC_BITS-1:0];
+	// not a register
+	reg signed [ACC_BITS-1:0] next_acc_sum;
+	always_comb begin
+		next_acc_sum = sum[ACC_BITS-1:0];
+		// truncate and sign extend with inverted sign
+		if (truncate_acc) next_acc_sum[SREG_BITS-1:FRAC_BITS-1] = !sum[FRAC_BITS-1] ? '1 : '0;
+	end
+
+
 	wire signed [ACC_BITS-1:0] next_acc_sreg = sreg_out;
 	assign next_acc = (shift_sreg && !rotate_sreg) ? next_acc_sreg : next_acc_sum;
 
@@ -313,8 +339,11 @@ module delta_sigma_modulator #(
 
 	// Invert top bit so that it looks like we computed acc + u - (1 << (FRAC_BITS-1)) and round to nearest output,
 	// instead of acc + u and round down, so that the error becomes signed (and smaller in worst case magnitude).
-	wire signed [FRAC_BITS-1:0] err = sum[FRAC_BITS-1:0] ^ (1 << (FRAC_BITS-1));
-	wire signed [FRAC_BITS-1:0] err_eff = force_err ? forced_err_value : err;
+	//wire signed [FRAC_BITS-1:0] err = sum[FRAC_BITS-1:0] ^ (1 << (FRAC_BITS-1));
+	//wire signed [FRAC_BITS-1:0] err_eff = force_err ? forced_err_value : err;
+
+
+	wire signed [SREG_BITS-1:0] err_eff = force_err ? forced_err_value : sum[SREG_BITS-1:0];
 
 	assign sreg_in = rotate_sreg ? sreg_out : err_eff;
 
