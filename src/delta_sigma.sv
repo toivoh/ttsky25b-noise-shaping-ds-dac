@@ -12,6 +12,9 @@
 `define SRC2_SEL_U              0
 `define SRC2_SEL_SREG           1
 `define SRC2_SEL_LFSR_UPSHIFTED 2
+`define SRC2_SEL_NOISE1         3
+//`define SRC2_SEL_NOISE2         5
+
 
 `define DEST_SEL_ACC        0
 `define DEST_SEL_LFSR_STATE 1
@@ -228,6 +231,10 @@ module delta_sigma_modulator #(
 			9: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
+
+			// Not used, just to try to avoid optimizing away `SRC2_SEL_NOISE1/2
+			10: begin; src2_sel = `SRC2_SEL_NOISE1; end
+//			11: begin; src2_sel = `SRC2_SEL_NOISE2; end
 		endcase
 	end
 
@@ -255,14 +262,12 @@ module delta_sigma_modulator #(
 		.in(lfsr_state[LFSR_BITS_HALF-1:0]), .out(lfsr_state_permuted[LFSR_BITS-1:LFSR_BITS_HALF])
 	);
 
-
-	wire [LFSR_BITS-1:0] rev_lfsr_state_permuted;
+/*
+	wire [LFSR_BITS-1:0] rev_lfsr_state;
 	generate
-		for (i = 0; i < LFSR_BITS; i++) assign rev_lfsr_state_permuted[i] = lfsr_state_permuted[LFSR_BITS-1 - i];
+		for (i = 0; i < LFSR_BITS; i++) assign rev_lfsr_state[i] = lfsr_state[LFSR_BITS-1 - i];
 	endgenerate
-
-	wire [LFSR_BITS-1:0] lfsr_top_mask = {{LFSR_BITS_HALF{1'b1}}, {LFSR_BITS_HALF{1'b0}}};
-
+*/
 
 	wire [LFSR_BITS-1:0] next_lfsr_state;
 
@@ -312,6 +317,8 @@ module delta_sigma_modulator #(
 				src2 <<= MAX_LEFT_SHIFT;
 			end
 			`SRC2_SEL_LFSR_UPSHIFTED: src2 = lfsr_state_permuted << LFSR_BITS_HALF;
+			`SRC2_SEL_NOISE1: src2 = $signed(lfsr_state[LFSR_BITS-1 -: FRAC_BITS]);
+//			`SRC2_SEL_NOISE2: src2 = $signed(rev_lfsr_state[LFSR_BITS-1 -: FRAC_BITS]);
 			default: src2 = 'X;
 		endcase
 		src2 = $signed(src2) >>> rshift_count;
