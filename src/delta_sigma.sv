@@ -9,9 +9,9 @@
 `define SRC1_SEL_LFSR_PERM 1
 
 `define SRC2_SEL_BITS 2
-`define SRC2_SEL_U                0
-`define SRC2_SEL_SREG             1
-`define SRC2_SEL_LFSR_REVPERM_TOP 2
+`define SRC2_SEL_U              0
+`define SRC2_SEL_SREG           1
+`define SRC2_SEL_LFSR_UPSHIFTED 2
 
 `define DEST_SEL_ACC        0
 `define DEST_SEL_LFSR_STATE 1
@@ -46,7 +46,8 @@ module delta_sigma_modulator #(
 		NUM_TAPS = 4,
 		SHIFT_COUNT_BITS = 4, // also used for internal shifting, but only 2 bits needed for it for now
 		MAX_LEFT_SHIFT = 2,
-		LFSR_BITS = 22 // must be even, and match the bit shuffle pattern used
+		LFSR_BITS = 22, // must be even, and match the bit shuffle pattern used
+		SREG_INT_BITS = 2
 	) (
 		input wire clk, reset, en,
 
@@ -62,7 +63,8 @@ module delta_sigma_modulator #(
 
 	localparam FULL_BITS = IN_BITS+1;
 	localparam SREG_LEN = NUM_TAPS-1;
-	localparam ACC_BITS = FRAC_BITS + NUM_TAPS;
+	localparam SREG_BITS = FRAC_BITS + SREG_INT_BITS;
+	localparam ACC_BITS = SREG_BITS + NUM_TAPS;
 
 	localparam STATE_BITS = 4;
 
@@ -101,6 +103,7 @@ module delta_sigma_modulator #(
 	reg shift_sreg, rotate_sreg;
 	reg y_valid;
 	reg dest_sel;
+	reg do_step_lfsr;
 	always_comb begin
 		src1_sel = `SRC1_SEL_ACC;
 		src2_sel = `SRC2_SEL_SREG;
@@ -112,6 +115,7 @@ module delta_sigma_modulator #(
 		last_state = 0;
 		src2_en = 1;
 		dest_sel = `DEST_SEL_ACC;
+		do_step_lfsr = 0;
 
 		/*
 		// For NUM_TAPS = 2
@@ -200,10 +204,11 @@ module delta_sigma_modulator #(
 			end
 			// Recorrelate lfsr_state
 			5: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			6: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_REVPERM_TOP; inv_src2 = 1; end
-			7: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			6: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
+			//7: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			7: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
 			// Decorrelate lfsr_state
-			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_REVPERM_TOP;
+			8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
 		endcase
@@ -214,8 +219,8 @@ module delta_sigma_modulator #(
 
 	wire signed [ACC_BITS-1:0] next_acc;
 	reg signed [ACC_BITS-1:0] acc;
-	(* mem2reg *) reg signed [FRAC_BITS-1:0] sreg[SREG_LEN];
-	wire signed [FRAC_BITS-1:0] sreg_out = sreg[SREG_LEN-1];
+	(* mem2reg *) reg signed [SREG_BITS-1:0] sreg[SREG_LEN];
+	wire signed [SREG_BITS-1:0] sreg_out = sreg[SREG_LEN-1];
 
 	reg [LFSR_BITS-1:0] lfsr_state;
 
@@ -242,21 +247,21 @@ module delta_sigma_modulator #(
 	wire [LFSR_BITS-1:0] lfsr_top_mask = {{LFSR_BITS_HALF{1'b1}}, {LFSR_BITS_HALF{1'b0}}};
 
 
-	wire [FULL_BITS-1:0] result;
+	wire [LFSR_BITS-1:0] next_lfsr_state;
 
 	always_ff @(posedge clk) begin
 		if (reset) begin 
 			acc <= '0;
-			//lfsr_state <= '0;
-			lfsr_state <= 'h123456;
+			lfsr_state <= '0;
+			//lfsr_state <= 'h123456;
 		end else begin
 			if (en && dest_sel == `DEST_SEL_ACC) acc <= next_acc;
-			if (en && dest_sel == `DEST_SEL_LFSR_STATE) lfsr_state <= result;
+			if (en && dest_sel == `DEST_SEL_LFSR_STATE) lfsr_state <= next_lfsr_state;
 		end
 	end
 
-	wire [FRAC_BITS-1:0] sreg_in;
-	wire [FRAC_BITS-1:0] sreg_next[SREG_LEN];
+	wire [SREG_BITS-1:0] sreg_in;
+	wire [SREG_BITS-1:0] sreg_next[SREG_LEN];
 	generate
 		assign sreg_next[0] = sreg_in;
 		for (i = 0; i < SREG_LEN-1; i++) begin
@@ -289,7 +294,7 @@ module delta_sigma_modulator #(
 				src2 = $signed(sreg_out);
 				src2 <<= MAX_LEFT_SHIFT;
 			end
-			`SRC2_SEL_LFSR_REVPERM_TOP: src2 = rev_lfsr_state_permuted & lfsr_top_mask;
+			`SRC2_SEL_LFSR_UPSHIFTED: src2 = lfsr_state_permuted << LFSR_BITS_HALF;
 			default: src2 = 'X;
 		endcase
 		src2 = $signed(src2) >>> rshift_count;
@@ -299,7 +304,6 @@ module delta_sigma_modulator #(
 
 	//wire [FULL_BITS-1:0] sum = (inv_src1 ? ~acc : acc) + src2 + $signed({1'b0, inv_src1 | inv_src2});
 	wire [FULL_BITS-1:0] sum = src1 + src2 + $signed({1'b0, inv_src1 | inv_src2});
-	assign result = sum;
 
 	wire signed [ACC_BITS-1:0] next_acc_sum = sum[ACC_BITS-1:0];
 	wire signed [ACC_BITS-1:0] next_acc_sreg = sreg_out;
@@ -313,6 +317,14 @@ module delta_sigma_modulator #(
 	wire signed [FRAC_BITS-1:0] err_eff = force_err ? forced_err_value : err;
 
 	assign sreg_in = rotate_sreg ? sreg_out : err_eff;
+
+
+	// Use lfsr_state_permuted as source because we are permuting at the same time as stepping
+	// 22 bit lfsr, include zero state
+	wire lfsr_bit = lfsr_state_permuted[LFSR_BITS-1] ^ (lfsr_state_permuted[LFSR_BITS-2] | (lfsr_state_permuted[LFSR_BITS-1-1:0] == '0));
+	wire [LFSR_BITS-1:0] next_lfsr_state_step = {lfsr_state_permuted[LFSR_BITS-1-1:0], lfsr_bit};
+
+	assign next_lfsr_state = do_step_lfsr ? next_lfsr_state_step : sum;
 endmodule : delta_sigma_modulator
 
 
