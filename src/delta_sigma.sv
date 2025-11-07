@@ -243,10 +243,6 @@ module delta_sigma_modulator #(
 			15: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
-
-			// Not used, just to try to avoid optimizing away `SRC2_SEL_NOISE1/2
-			16: begin; src2_sel = `SRC2_SEL_NOISE1; end
-//			11: begin; src2_sel = `SRC2_SEL_NOISE2; end
 		endcase
 	end
 
