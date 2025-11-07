@@ -189,6 +189,7 @@ module delta_sigma_modulator #(
 				y_valid = 1;
 			end
 */
+			// Add noise
 			0: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[0]; end // Add uniform noise if noise_mode[0]
 			1: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end // permute lfsr_state
 			2: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[1]; end // Subtract uniform noise ==> triangle noise if noise_mode[1]
@@ -202,45 +203,49 @@ module delta_sigma_modulator #(
 				y_valid = 1;
 			end
 
+			// Subtract away noise again
 			4: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[1]; end // Add back uniform noise if noise_mode[1]
 			5: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end // permute lfsr_state
-			6: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[0]; end // Subtract away uniform noise if noise_mode[0]
-
-			7: begin
-				// Shift acc+0 -> shift register -> acc
-				src2_en = 0;
-				shift_sreg = 1; rotate_sreg = 0;
+			//6: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[0]; end // Subtract away uniform noise if noise_mode[0]
+			6: begin
+				src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[0]; // Subtract away uniform noise if noise_mode[0]
+				shift_sreg = 1; rotate_sreg = 0; // Shift acc+0 -> shift register -> acc
 			end
-			8: begin
+			// 7: begin; src2_en = 0; shift_sreg = 1; rotate_sreg = 0; end // Shift acc+0 -> shift register -> acc
+
+			// Calculate correction for next sample in acc
+			7: begin
 				// [4 -1]
 				inv_src1 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
 			end
 			// [-6]
-			9: begin
+			8: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 			end
-			10: begin
+			9: begin
 				inv_src1 = 0; inv_src2 = 1;
 				rshift_count = MAX_LEFT_SHIFT - 1; // *2
 				shift_sreg = 1;
 			end
-			11: begin
+			10: begin
 				// [4]
 				rshift_count = MAX_LEFT_SHIFT - 2; // *4
 				shift_sreg = 1;
 
 				//last_state = 1;
 			end
-			// Recorrelate lfsr_state
-			12: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			13: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
+
+			// Recorrelate lfsr_state and take LFSR step
+			11: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
+			12: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED; inv_src2 = 1; end
 			//8: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end
-			14: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
+			13: begin; dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1; end // Final recorrelate + step LFSR
+
 			// Decorrelate lfsr_state
-			15: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
+			14: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_sel = `SRC2_SEL_LFSR_UPSHIFTED;
 				last_state = 1;
 			end
 		endcase
