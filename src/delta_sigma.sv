@@ -50,7 +50,8 @@ module delta_sigma_modulator #(
 		SHIFT_COUNT_BITS = 4, // also used for internal shifting, but only 2 bits needed for it for now
 		MAX_LEFT_SHIFT = 2,
 		LFSR_BITS = 22, // must be even, and match the bit shuffle pattern used
-		SREG_INT_BITS = 2
+		SREG_INT_BITS = 2,
+		COEFF_CHOICE_BITS = 2
 	) (
 		input wire clk, reset, en,
 		input wire reset_lfsr,
@@ -59,6 +60,7 @@ module delta_sigma_modulator #(
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
 		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
+		input wire [3:0] coeff_choice, // only coeff_choice[COEFF_CHOICE_BITS-1:0] are used
 
 		output wire y_valid_out,
 		output wire [OUT_BITS-1:0] y, // output signal
@@ -102,7 +104,7 @@ module delta_sigma_modulator #(
 	// not registers
 	reg src1_sel;
 	reg [`SRC2_SEL_BITS-1:0] src2_sel;
-	reg src2_en;
+	reg src1_en, src2_en;
 	reg inv_src2, inv_src1;
 	// Only shift sreg when shift_sreg=1. If rotate_sreg=1, connect the input to the output to be able to rotate through the contents
 	reg [SHIFT_COUNT_BITS-1:0] rshift_count;
@@ -121,67 +123,18 @@ module delta_sigma_modulator #(
 		y_valid = 0;
 		//last_state = 0;
 		next_state = state + 1;
+		src1_en = 1;
 		src2_en = 1;
 		dest_sel = `DEST_SEL_ACC;
 		do_step_lfsr = 0;
 		truncate_acc = 0;
 
-		/*
-		// For NUM_TAPS = 2
-		case (state)
-			0: begin
-				// Read new input, produce new output
-				src2_sel = `SRC2_SEL_U;
-				rshift_count = u_rshift;
-				shift_sreg = 1; rotate_sreg = 0;
-				y_valid = 1;
-			end
-			1: begin
-				// [2 -1]
-				inv_src1 = 1;
-				rshift_count = MAX_LEFT_SHIFT - 1; // *2
-
-				last_state = 1;
-			end
-		endcase
-		*/
-		/*
-		// For NUM_TAPS = 3
-		case (state)
-			0: begin
-				// Read new input, produce new output
-				src2_sel = `SRC2_SEL_U;
-				rshift_count = u_rshift;
-				shift_sreg = 1; rotate_sreg = 0;
-				y_valid = 1;
-			end
-			// [-3 1]
-			1: begin
-				inv_src1 = 0; inv_src2 = 1;
-				rshift_count = MAX_LEFT_SHIFT - 1; // *2
-			end
-			2: begin
-				inv_src1 = 0; inv_src2 = 1;
-				rshift_count = MAX_LEFT_SHIFT - 0; // *1
-				shift_sreg = 1;
-			end
-			// [3]
-			3: begin
-				inv_src1 = 0; inv_src2 = 0;
-				rshift_count = MAX_LEFT_SHIFT - 1; // *2
-			end
-			4: begin
-				inv_src1 = 0; inv_src2 = 0;
-				rshift_count = MAX_LEFT_SHIFT - 0; // *1
-				shift_sreg = 1;
-
-				last_state = 1;
-			end
-		endcase
-		*/
 		// For NUM_TAPS = 4
 		case (state[5:4])
-			0: case (state[3:0]) // add noise, read input+produce output, subtract noise
+// Add noise, read input+produce output, subtract noise
+// ----------------------------------------------------
+
+			0: case (state[3:0])
 				// Add noise
 				//0: not reached, INITIAL_STATE = 1
 				1: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[0]; end // Add uniform noise if noise_mode[0]
@@ -207,33 +160,105 @@ module delta_sigma_modulator #(
 					next_state = 16;
 				end
 			endcase
-			1: case (state[3:0]) // Calculate correction for next sample in acc
-				0: begin
-					// [4 -1]
-					inv_src1 = 1;
-					rshift_count = MAX_LEFT_SHIFT - 2; // *4
-					shift_sreg = 1;
-				end
-				// [-6]
-				1: begin
-					inv_src1 = 0; inv_src2 = 1;
-					rshift_count = MAX_LEFT_SHIFT - 2; // *4
-				end
-				2: begin
-					inv_src1 = 0; inv_src2 = 1;
-					rshift_count = MAX_LEFT_SHIFT - 1; // *2
-					shift_sreg = 1;
-				end
-				3: begin
-					// [4]
-					rshift_count = MAX_LEFT_SHIFT - 2; // *4
-					shift_sreg = 1;
 
-					//last_state = 1;
-					next_state = 2*16;
-				end
+// Calculate correction for next sample in acc
+// -------------------------------------------
+
+			1: case (coeff_choice[COEFF_CHOICE_BITS-1:0]) 
+				0: case (state[3:0]) // Fourth order: (-1) 4 -6 4 -1
+					0: begin
+						// [4 -1]
+						inv_src1 = 1;
+						rshift_count = MAX_LEFT_SHIFT - 2; // *4
+						shift_sreg = 1;
+					end
+					// [-6]
+					1: begin
+						inv_src1 = 0; inv_src2 = 1;
+						rshift_count = MAX_LEFT_SHIFT - 2; // *4
+					end
+					2: begin
+						inv_src1 = 0; inv_src2 = 1;
+						rshift_count = MAX_LEFT_SHIFT - 1; // *2
+						shift_sreg = 1;
+					end
+					3: begin
+						// [4]
+						rshift_count = MAX_LEFT_SHIFT - 2; // *4
+						shift_sreg = 1;
+
+						//last_state = 1;
+						next_state = 2*16;
+					end
+				endcase
+				1: case (state[3:0]) // Third order: (-1) 3 -3 1
+					//0: begin; shift_sreg = 1; end // skip one old value
+					// [1 0]
+					0: begin
+						src1_en = 0; inv_src2 = 0;
+						rshift_count = MAX_LEFT_SHIFT; // *1
+						shift_sreg = 1;
+					end
+
+					// [-3]
+					1: begin
+						inv_src1 = 0; inv_src2 = 1;
+						rshift_count = MAX_LEFT_SHIFT - 1; // *2
+					end
+					2: begin
+						inv_src1 = 0; inv_src2 = 1;
+						rshift_count = MAX_LEFT_SHIFT - 0; // *1
+						shift_sreg = 1;
+					end
+					// [3]
+					3: begin
+						inv_src1 = 0; inv_src2 = 0;
+						rshift_count = MAX_LEFT_SHIFT - 1; // *2
+					end
+					4: begin
+						inv_src1 = 0; inv_src2 = 0;
+						rshift_count = MAX_LEFT_SHIFT - 0; // *1
+						shift_sreg = 1;
+
+						//last_state = 1;
+						next_state = 2*16;
+					end
+				endcase
+				
+				2: case (state[3:0]) // Second order: (-1) 2 -1
+					0: begin; shift_sreg = 1; end // skip one old value
+					// [-1 0]
+					1: begin
+						src1_en = 0; inv_src2 = 1;
+						rshift_count = MAX_LEFT_SHIFT; // *1
+						shift_sreg = 1;
+					end
+
+					// [2]
+					2: begin
+						inv_src1 = 0; inv_src2 = 0;
+						rshift_count = MAX_LEFT_SHIFT - 1; // *2
+						shift_sreg = 1;
+
+						//last_state = 1;
+						next_state = 2*16;
+					end
+				endcase
+				3: case (state[3:0]) // First order: (-1) 1
+					0, 1: begin; shift_sreg = 1; end // skip two old values
+					// [1]
+					2: begin
+						src1_en = 0; inv_src2 = 0;
+						rshift_count = MAX_LEFT_SHIFT; // *1
+						shift_sreg = 1;
+						next_state = 2*16;
+					end
+				endcase
 			endcase
-			2: begin // Recorrelate lfsr_state
+
+// Recorrelate lfsr_state
+// ----------------------
+			2: begin
 				if (state[3:0] == 0) begin
 					// Permute lfsr_state
 					dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0;
@@ -243,7 +268,9 @@ module delta_sigma_modulator #(
 				end
 				if (state[3:0] == n_decorrelate) next_state = 3*16;
 			end
-			3: begin // Take LFSR step and decorrelate lfsr_state
+// Take LFSR step and decorrelate lfsr_state
+// -----------------------------------------
+			3: begin
 				if (state[3:0] == 0) begin
 					// Finish recorrelate + step LFSR
 					dest_sel = `DEST_SEL_LFSR_STATE; do_step_lfsr = 1;
@@ -328,6 +355,7 @@ module delta_sigma_modulator #(
 			`SRC1_SEL_LFSR_PERM: src1 = lfsr_state_permuted;
 			default: src1 = 'X;
 		endcase
+		if (!src1_en) src1 = '0;
 		if (inv_src1) src1 = ~src1;
 
 		case (src2_sel)
@@ -401,6 +429,7 @@ module delta_sigma_pw_modulator #(
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
 		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
+		input wire [3:0] coeff_choice,
 
 		input wire dual_slope_en, double_slope_en,
 		input wire [PWM_BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)
@@ -424,7 +453,7 @@ module delta_sigma_pw_modulator #(
 
 	delta_sigma_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .OUT_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS), .SHIFT_COUNT_BITS(SHIFT_COUNT_BITS), .MAX_LEFT_SHIFT(MAX_LEFT_SHIFT)) ds_mod(
 		.clk(clk), .reset(reset), .en(!y_valid || pulse_done), .reset_lfsr(reset_lfsr),
-		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate),
+		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate), .coeff_choice(coeff_choice),
 		.y(y), .y_valid_out(y_valid)
 	);
 	pulse_width_modulator #(.BITS(PWM_BITS)) pw_modulator(

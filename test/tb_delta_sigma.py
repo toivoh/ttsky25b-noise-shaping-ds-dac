@@ -11,7 +11,7 @@ async def test_project(dut):
 	clock = Clock(dut.clk, 10, units="us")
 	cocotb.start_soon(clock.start())
 
-	cycles_per_sample = 5
+	cycles_per_sample = 14
 
 
 	# Forced err: test response to single error
@@ -20,12 +20,14 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
+	dut.coeff_choice.value = 3
+
 	dut.u.value = 0
 	dut.force_err.value = 1
 	#dut.forced_err_value.value = -128
 	dut.forced_err_value.value = 1
 
-	await ClockCycles(dut.clk, 1) # should read err during first cycle of sample
+	await ClockCycles(dut.clk, cycles_per_sample) # should be enough to read err
 	dut.forced_err_value.value = 0
 	await ClockCycles(dut.clk, 5*cycles_per_sample)
 

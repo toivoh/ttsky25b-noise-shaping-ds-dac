@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = dither/delta_sigma.sv
+PROJECT_SOURCES = delta_sigma.sv
 
 ifneq ($(GATES),yes)
 

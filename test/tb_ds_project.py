@@ -125,7 +125,7 @@ async def write_reg(dut, addr, value):
 	await ClockCycles(dut.clk, 3)
 
 
-async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate):
+async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choice):
 	dut.uio_in.value = 16
 	dut.rst_n.value = 0
 	await ClockCycles(dut.clk, 10)
@@ -138,7 +138,7 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate):
 	frac_mask = (1 << eff_frac_bits) - 1
 	int_mask = ((1 << 16) - 1) & ~frac_mask
 
-	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8))
+	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8) | ((coeff_choice&15)<<4))
 	reg1_value = (period&255) | ((u_rshift&15) << 8)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
@@ -146,8 +146,15 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate):
 	await ClockCycles(dut.clk, 1)
 
 
+	if coeff_choice == 0:   coeffs = [-1, 4, -6, 4]
+	elif coeff_choice == 1: coeffs = [ 1, -3, 3]
+	elif coeff_choice == 2: coeffs = [-1, 2]
+	elif coeff_choice == 3: coeffs = [1]
+	else: raise Error("Unsupported coeff_choice")
+
+
 #	ds = DeltaSigma(noise_mode, n_decorrelate, [1, -4, 6, -4])
-	ds = DeltaSigma(noise_mode, n_decorrelate, [-1, 4, -6, 4])
+	ds = DeltaSigma(noise_mode, n_decorrelate, coeffs)
 
 	# Wait for the first toggle on pulse_toggle
 	pt = dut.uio_out.value[0]
@@ -212,9 +219,10 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 1)
 	if rtl: assert top.registers[2].value.integer == reg2_value
 
-	for (noise_mode, n_decorrelate) in [(0,0), (1,0), (1,5), (3,5), (3,15)]:
-		print("\nnoise_mode = ", noise_mode, ", n_decorrelate = ", n_decorrelate, sep="")
+	for (noise_mode, n_decorrelate, coeff_choice) in [(3,5,3), (3,5,2), (3,5,1), (0,0,0), (1,0,0), (1,5,0), (3,5,0), (3,15,0)]:
+	#for (noise_mode, n_decorrelate, coeff_choice) in [(3,5,1), (0,0,0), (1,0,0), (1,5,0), (3,5,0), (3,15,0)]:
+		print("\nnoise_mode = ", noise_mode, ", n_decorrelate = ", n_decorrelate, ", coeff_choice = ", coeff_choice, sep="")
 		for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):
 			print("\nu_rshift =", u_rshift)
-			await test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate)
+			await test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choice)
 

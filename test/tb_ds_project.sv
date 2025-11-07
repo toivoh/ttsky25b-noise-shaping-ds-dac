@@ -50,7 +50,7 @@ module tb_ds_project();
 	wire [15:0] reg1 = user_project.registers[1];
 	wire [15:0] reg2 = user_project.registers[2];
 
-	localparam SREG_BITS = 16;
+	localparam SREG_BITS = 18;
 
 	wire [SREG_BITS-1:0] sreg0 = user_project.modulator.ds_mod.sreg[0];
 	wire [SREG_BITS-1:0] sreg1 = user_project.modulator.ds_mod.sreg[1];

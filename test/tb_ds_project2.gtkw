@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Thu Nov  6 12:00:15 2025
+[*] Fri Nov  7 08:43:27 2025
 [*]
 [dumpfile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project.vcd"
-[dumpfile_mtime] "Thu Nov  6 11:58:16 2025"
-[dumpfile_size] 4083
+[dumpfile_mtime] "Fri Nov  7 08:40:57 2025"
+[dumpfile_size] 7432729
 [savefile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project2.gtkw"
-[timestart] 460900000
-[size] 1780 978
+[timestart] 204600000
+[size] 3073 1185
 [pos] -1 -1
-*-25.000000 613800000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-25.000000 444000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_ds_project.
 [treeopen] tb_ds_project.user_project.
 [treeopen] tb_ds_project.user_project.modulator.
 [sst_width] 297
 [signals_width] 311
 [sst_expanded] 1
-[sst_vpaned_height] 290
+[sst_vpaned_height] 362
 @28
 tb_ds_project.rst_n
 tb_ds_project.clk
@@ -52,7 +52,6 @@ tb_ds_project.user_project.modulator.pulse_done
 tb_ds_project.sreg0[15:0]
 tb_ds_project.sreg1[15:0]
 tb_ds_project.sreg2[15:0]
-@23
 tb_ds_project.user_project.modulator.ds_mod.acc[21:0]
 @200
 -
@@ -63,7 +62,6 @@ tb_ds_project.user_project.pulse_toggle
 @200
 -
 @22
-tb_ds_project.user_project.modulator.ds_mod.state[3:0]
 tb_ds_project.user_project.modulator.ds_mod.lfsr_state[21:0]
 tb_ds_project.user_project.modulator.ds_mod.acc[21:0]
 @200
@@ -81,5 +79,11 @@ tb_ds_project.user_project.modulator.ds_mod.src1[23:0]
 tb_ds_project.user_project.modulator.ds_mod.src2[23:0]
 @200
 -
+@22
+tb_ds_project.user_project.modulator.ds_mod.coeff_choice[3:0]
+@200
+-
+@23
+tb_ds_project.user_project.modulator.ds_mod.state[5:0]
 [pattern_trace] 1
 [pattern_trace] 0
