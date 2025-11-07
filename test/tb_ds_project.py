@@ -13,7 +13,7 @@ PWM_BITS  = 8
 IN_BITS = 23
 LFSR_BITS = 22
 
-MIN_PERIOD = 16
+MIN_PERIOD = 14
 
 ONE_HALF = 1 << (FRAC_BITS - 1)
 MAX_U_RSHIFT = IN_BITS - 16
@@ -44,14 +44,14 @@ def sext(x, nbits):
 	return x
 
 class DeltaSigma:
-	def __init__(self, noise_mode, coeffs):
+	def __init__(self, noise_mode, n_decorrelate, coeffs):
 		self.noise_mode = noise_mode
+		self.n_decorrelate = n_decorrelate
 		self.coeffs = coeffs
 		self.n = len(coeffs)
 		self.correction = 0
 		self.errors = [0]*self.n
 		self.lfsr_state = 0
-		self.n_decorrelate = 1
 
 	def process(self, u):
 		# update LFSR
@@ -125,20 +125,20 @@ async def write_reg(dut, addr, value):
 	await ClockCycles(dut.clk, 3)
 
 
-async def test_delta_sigma(dut, u_rshift, noise_mode):
+async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate):
 	dut.uio_in.value = 16
 	dut.rst_n.value = 0
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
-	period = MIN_PERIOD
+	period = MIN_PERIOD + 2*n_decorrelate
 
 	u_lshift = MAX_U_RSHIFT - u_rshift
 	eff_frac_bits = FRAC_BITS - u_lshift
 	frac_mask = (1 << eff_frac_bits) - 1
 	int_mask = ((1 << 16) - 1) & ~frac_mask
 
-	await write_reg(dut, 2, (noise_mode&3) << 14)
+	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8))
 	reg1_value = (period&255) | ((u_rshift&15) << 8)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
@@ -146,8 +146,8 @@ async def test_delta_sigma(dut, u_rshift, noise_mode):
 	await ClockCycles(dut.clk, 1)
 
 
-#	ds = DeltaSigma(noise_mode, [1, -4, 6, -4])
-	ds = DeltaSigma(noise_mode, [-1, 4, -6, 4])
+#	ds = DeltaSigma(noise_mode, n_decorrelate, [1, -4, 6, -4])
+	ds = DeltaSigma(noise_mode, n_decorrelate, [-1, 4, -6, 4])
 
 	# Wait for the first toggle on pulse_toggle
 	pt = dut.uio_out.value[0]
@@ -212,9 +212,9 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 1)
 	if rtl: assert top.registers[2].value.integer == reg2_value
 
-	for noise_mode in [0, 1, 3]:
-		print("\nnoise_mode =", noise_mode)
+	for (noise_mode, n_decorrelate) in [(0,0), (1,0), (1,5), (3,5), (3,15)]:
+		print("\nnoise_mode = ", noise_mode, ", n_decorrelate = ", n_decorrelate, sep="")
 		for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):
 			print("\nu_rshift =", u_rshift)
-			await test_delta_sigma(dut, u_rshift, noise_mode)
+			await test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate)
 

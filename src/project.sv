@@ -87,11 +87,12 @@ module tt_um_toivoh_delta_sigma #(
 	localparam PULSE_COUNTER_BITS = 8;
 
 	wire [PULSE_COUNTER_BITS-1:0] pulse_divider = registers[2][PULSE_COUNTER_BITS-1:0];
+	wire [3:0] n_decorrelate = registers[2][11:8];
 	wire [1:0] noise_mode = registers[2][15:14];
 
 	delta_sigma_pw_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .PWM_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS)) modulator(
 		.clk(clk), .reset(reset), .reset_lfsr(reset_lfsr),
-		.u(u), .u_rshift(u_rshift), .noise_mode(noise_mode),
+		.u(u), .u_rshift(u_rshift), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate),
 		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .compare_max(compare_max),
 		.pulse_done(pulse_done), .pwm_out(pwm_out), .pulse_width_out(pulse_width),
 		.force_err(force_err), .forced_err_value('0)
