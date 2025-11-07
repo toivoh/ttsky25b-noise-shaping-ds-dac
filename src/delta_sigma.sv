@@ -51,7 +51,7 @@ module delta_sigma_modulator #(
 		MAX_LEFT_SHIFT = 2,
 		LFSR_BITS = 22, // must be even, and match the bit shuffle pattern used
 		SREG_INT_BITS = 2,
-		COEFF_CHOICE_BITS = 2
+		COEFF_CHOICE_BITS = 4
 	) (
 		input wire clk, reset, en,
 		input wire reset_lfsr,
@@ -60,7 +60,7 @@ module delta_sigma_modulator #(
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
 		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
-		input wire [3:0] coeff_choice, // only coeff_choice[COEFF_CHOICE_BITS-1:0] are used
+		input wire [5:0] coeff_choice, // only coeff_choice[COEFF_CHOICE_BITS-1:0] are used
 
 		output wire y_valid_out,
 		output wire [OUT_BITS-1:0] y, // output signal
@@ -164,97 +164,147 @@ module delta_sigma_modulator #(
 // Calculate correction for next sample in acc
 // -------------------------------------------
 
-			1: case (coeff_choice[COEFF_CHOICE_BITS-1:0]) 
-				0: case (state[3:0]) // Fourth order: (-1) 4 -6 4 -1
-					0: begin
-						// [4 -1]
-						inv_src1 = 1;
-						rshift_count = MAX_LEFT_SHIFT - 2; // *4
-						shift_sreg = 1;
-					end
-					// [-6]
-					1: begin
-						inv_src1 = 0; inv_src2 = 1;
-						rshift_count = MAX_LEFT_SHIFT - 2; // *4
-					end
-					2: begin
-						inv_src1 = 0; inv_src2 = 1;
-						rshift_count = MAX_LEFT_SHIFT - 1; // *2
-						shift_sreg = 1;
-					end
-					3: begin
-						// [4]
-						rshift_count = MAX_LEFT_SHIFT - 2; // *4
-						shift_sreg = 1;
+			1: begin
+				if (coeff_choice[COEFF_CHOICE_BITS-1:2] == 0) case (coeff_choice[1:0]) 
+					0: case (state[3:0]) // Fourth order: (-1) 4 -6 4 -1
+						0: begin
+							// [4 -1]
+							inv_src1 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+							shift_sreg = 1;
+						end
+						// [-6]
+						1: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+						end
+						2: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 1; // *2
+							shift_sreg = 1;
+						end
+						3: begin
+							// [4]
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+							shift_sreg = 1;
 
-						//last_state = 1;
-						next_state = 2*16;
-					end
+							//last_state = 1;
+							next_state = 2*16;
+						end
+					endcase
+					1: case (state[3:0]) // Third order: (-1) 3 -3 1
+						//0: begin; shift_sreg = 1; end // skip one old value
+						// [1 0]
+						0: begin
+							src1_en = 0; inv_src2 = 0;
+							rshift_count = MAX_LEFT_SHIFT; // *1
+							shift_sreg = 1;
+						end
+
+						// [-3]
+						1: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 1; // *2
+						end
+						2: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 0; // *1
+							shift_sreg = 1;
+						end
+						// [3]
+						3: begin
+							inv_src1 = 0; inv_src2 = 0;
+							rshift_count = MAX_LEFT_SHIFT - 1; // *2
+						end
+						4: begin
+							inv_src1 = 0; inv_src2 = 0;
+							rshift_count = MAX_LEFT_SHIFT - 0; // *1
+							shift_sreg = 1;
+
+							//last_state = 1;
+							next_state = 2*16;
+						end
+					endcase
+					
+					2: case (state[3:0]) // Second order: (-1) 2 -1
+						0: begin; shift_sreg = 1; end // skip one old value
+						// [-1 0]
+						1: begin
+							src1_en = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT; // *1
+							shift_sreg = 1;
+						end
+
+						// [2]
+						2: begin
+							inv_src1 = 0; inv_src2 = 0;
+							rshift_count = MAX_LEFT_SHIFT - 1; // *2
+							shift_sreg = 1;
+
+							//last_state = 1;
+							next_state = 2*16;
+						end
+					endcase
+					3: case (state[3:0]) // First order: (-1) 1
+						0, 1: begin; shift_sreg = 1; end // skip two old values
+						// [1]
+						2: begin
+							src1_en = 0; inv_src2 = 0;
+							rshift_count = MAX_LEFT_SHIFT; // *1
+							shift_sreg = 1;
+							next_state = 2*16;
+						end
+					endcase
 				endcase
-				1: case (state[3:0]) // Third order: (-1) 3 -3 1
-					//0: begin; shift_sreg = 1; end // skip one old value
-					// [1 0]
-					0: begin
-						src1_en = 0; inv_src2 = 0;
-						rshift_count = MAX_LEFT_SHIFT; // *1
-						shift_sreg = 1;
-					end
+				else if (coeff_choice[COEFF_CHOICE_BITS-1:3] == 1) begin
+					case (state[3:0])
+// ### Fourth order with one zero not quite at DC: (-1), 4-a, -6+2a, 4-a, -1
+						// [4-a -1]
+						0: begin
+							inv_src1 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+							//shift_sreg = 1;
+						end
+						1: begin
+							// [-a]
+							inv_src2 = 1;
+							rshift_count = (MAX_LEFT_SHIFT + 3) + coeff_choice[2:0]; // /((8*2^extra_shr)
+							shift_sreg = 1;
+						end
 
-					// [-3]
-					1: begin
-						inv_src1 = 0; inv_src2 = 1;
-						rshift_count = MAX_LEFT_SHIFT - 1; // *2
-					end
-					2: begin
-						inv_src1 = 0; inv_src2 = 1;
-						rshift_count = MAX_LEFT_SHIFT - 0; // *1
-						shift_sreg = 1;
-					end
-					// [3]
-					3: begin
-						inv_src1 = 0; inv_src2 = 0;
-						rshift_count = MAX_LEFT_SHIFT - 1; // *2
-					end
-					4: begin
-						inv_src1 = 0; inv_src2 = 0;
-						rshift_count = MAX_LEFT_SHIFT - 0; // *1
-						shift_sreg = 1;
+						// [-6+2a]
+						2: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+						end
+						3: begin
+							inv_src1 = 0; inv_src2 = 1;
+							rshift_count = MAX_LEFT_SHIFT - 1; // *2
+							//shift_sreg = 1;
+						end
+						4: begin
+							// [2a]
+							inv_src1 = 0; inv_src2 = 0;
+							rshift_count = (MAX_LEFT_SHIFT + 3-1) + coeff_choice[2:0]; // /((4*2^extra_shr)
+							shift_sreg = 1;
+						end
 
-						//last_state = 1;
-						next_state = 2*16;
-					end
-				endcase
-				
-				2: case (state[3:0]) // Second order: (-1) 2 -1
-					0: begin; shift_sreg = 1; end // skip one old value
-					// [-1 0]
-					1: begin
-						src1_en = 0; inv_src2 = 1;
-						rshift_count = MAX_LEFT_SHIFT; // *1
-						shift_sreg = 1;
-					end
+						// [4-a]
+						5: begin
+							rshift_count = MAX_LEFT_SHIFT - 2; // *4
+						end
+						6: begin
+							inv_src2 = 1;
+							rshift_count = (MAX_LEFT_SHIFT + 3) + coeff_choice[2:0]; // /((8*2^extra_shr)
+							shift_sreg = 1;
 
-					// [2]
-					2: begin
-						inv_src1 = 0; inv_src2 = 0;
-						rshift_count = MAX_LEFT_SHIFT - 1; // *2
-						shift_sreg = 1;
-
-						//last_state = 1;
-						next_state = 2*16;
-					end
-				endcase
-				3: case (state[3:0]) // First order: (-1) 1
-					0, 1: begin; shift_sreg = 1; end // skip two old values
-					// [1]
-					2: begin
-						src1_en = 0; inv_src2 = 0;
-						rshift_count = MAX_LEFT_SHIFT; // *1
-						shift_sreg = 1;
-						next_state = 2*16;
-					end
-				endcase
-			endcase
+							//last_state = 1;
+							next_state = 2*16;
+						end
+					endcase
+					
+				end
+			end
 
 // Recorrelate lfsr_state
 // ----------------------
@@ -429,7 +479,7 @@ module delta_sigma_pw_modulator #(
 		input [SHIFT_COUNT_BITS-1:0] u_rshift,
 		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
-		input wire [3:0] coeff_choice,
+		input wire [5:0] coeff_choice,
 
 		input wire dual_slope_en, double_slope_en,
 		input wire [PWM_BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)

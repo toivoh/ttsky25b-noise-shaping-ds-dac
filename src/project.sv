@@ -87,7 +87,7 @@ module tt_um_toivoh_delta_sigma #(
 	//localparam PULSE_COUNTER_BITS = 6;
 
 	//wire [PULSE_COUNTER_BITS-1:0] pulse_divider = registers[2][PULSE_COUNTER_BITS-1:0];
-	wire [3:0] coeff_choice = registers[2][7:4];
+	wire [5:0] coeff_choice = registers[2][7:2];
 	wire [3:0] n_decorrelate = registers[2][11:8];
 	wire [1:0] noise_mode = registers[2][15:14];
 

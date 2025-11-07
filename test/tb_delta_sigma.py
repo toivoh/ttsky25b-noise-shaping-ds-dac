@@ -20,12 +20,12 @@ async def test_project(dut):
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
-	dut.coeff_choice.value = 3
+	dut.coeff_choice.value = 9
 
 	dut.u.value = 0
 	dut.force_err.value = 1
 	#dut.forced_err_value.value = -128
-	dut.forced_err_value.value = 1
+	dut.forced_err_value.value = 16
 
 	await ClockCycles(dut.clk, cycles_per_sample) # should be enough to read err
 	dut.forced_err_value.value = 0

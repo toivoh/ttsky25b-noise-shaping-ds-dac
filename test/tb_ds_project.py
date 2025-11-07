@@ -138,7 +138,7 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choic
 	frac_mask = (1 << eff_frac_bits) - 1
 	int_mask = ((1 << 16) - 1) & ~frac_mask
 
-	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8) | ((coeff_choice&15)<<4))
+	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8) | ((coeff_choice&63)<<2))
 	reg1_value = (period&255) | ((u_rshift&15) << 8)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
