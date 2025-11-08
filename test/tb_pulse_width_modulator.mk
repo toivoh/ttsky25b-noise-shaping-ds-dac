@@ -5,7 +5,7 @@
 SIM ?= icarus
 TOPLEVEL_LANG ?= verilog
 SRC_DIR = $(PWD)/../src
-PROJECT_SOURCES = dither/pulse_width_modulator.sv
+PROJECT_SOURCES = pulse_width_modulator.sv
 
 ifneq ($(GATES),yes)
 

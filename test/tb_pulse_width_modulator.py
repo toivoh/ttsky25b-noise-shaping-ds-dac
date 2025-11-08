@@ -5,6 +5,8 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
+PWM_BITS  = 11
+PW_MASK = (1 << PWM_BITS) - 1
 
 @cocotb.test()
 async def test_project(dut):
@@ -22,8 +24,10 @@ async def test_project(dut):
 		period = 4
 		dut.compare_max.value = period-1
 
-		for j in range(1,4):
-			dut.pulse_width.value = j
+		for j in range(-1,period+2):
+			pw = j
+			if pw > period: pw = (3 << (PWM_BITS-2))-1
+			dut.pulse_width.value = pw & PW_MASK
 			for i in range(2*period):
 				await ClockCycles(dut.clk, 1)
 				if dut.pulse_done.value.integer != 0: break
