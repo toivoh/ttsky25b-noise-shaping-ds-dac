@@ -40,7 +40,7 @@ module pulse_width_modulator #(
 				next_direction = 0;
 			end
 
-			r_pulse_done = (direction == 0) & (compare_value == 0); // compare_value == 1 ?
+			r_pulse_done = (direction == 0) & (compare_value[BITS-1:1] == 0);
 		end else begin
 			delta = 1;
 			next_direction = 1;

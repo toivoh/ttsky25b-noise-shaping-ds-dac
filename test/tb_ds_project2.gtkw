@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Fri Nov  7 08:43:27 2025
+[*] Sat Nov  8 07:14:08 2025
 [*]
 [dumpfile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project.vcd"
-[dumpfile_mtime] "Fri Nov  7 08:40:57 2025"
-[dumpfile_size] 7432729
+[dumpfile_mtime] "Sat Nov  8 07:12:41 2025"
+[dumpfile_size] 7574515
 [savefile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project2.gtkw"
-[timestart] 204600000
-[size] 3073 1185
+[timestart] 314930400000
+[size] 3073 1304
 [pos] -1 -1
-*-25.000000 444000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-26.000000 315343700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_ds_project.
 [treeopen] tb_ds_project.user_project.
 [treeopen] tb_ds_project.user_project.modulator.
 [sst_width] 297
 [signals_width] 311
 [sst_expanded] 1
-[sst_vpaned_height] 362
+[sst_vpaned_height] 402
 @28
 tb_ds_project.rst_n
 tb_ds_project.clk
@@ -35,6 +35,12 @@ tb_ds_project.reg1[15:0]
 tb_ds_project.reg2[15:0]
 @200
 -
+@22
+tb_ds_project.sreg0[17:0]
+tb_ds_project.sreg1[17:0]
+tb_ds_project.sreg2[17:0]
+@200
+-
 @28
 tb_ds_project.user_project.modulator.ds_mod.force_err
 @200
@@ -49,9 +55,6 @@ tb_ds_project.user_project.modulator.ds_mod.y[7:0]
 @28
 tb_ds_project.user_project.modulator.pulse_done
 @22
-tb_ds_project.sreg0[15:0]
-tb_ds_project.sreg1[15:0]
-tb_ds_project.sreg2[15:0]
 tb_ds_project.user_project.modulator.ds_mod.acc[21:0]
 @200
 -
@@ -80,10 +83,32 @@ tb_ds_project.user_project.modulator.ds_mod.src2[23:0]
 @200
 -
 @22
-tb_ds_project.user_project.modulator.ds_mod.coeff_choice[3:0]
+tb_ds_project.user_project.modulator.ds_mod.state[5:0]
 @200
 -
-@23
-tb_ds_project.user_project.modulator.ds_mod.state[5:0]
+@22
+tb_ds_project.user_project.modulator.pw_modulator.compare_max[7:0]
+@28
+tb_ds_project.user_project.modulator.pulse_done
+tb_ds_project.user_project.pulse_toggle
+@22
+tb_ds_project.user_project.modulator.pulse_width[7:0]
+@28
+tb_ds_project.pwm_out
+@421
+tb_ds_project.pulse_width_measured
+@200
+-
+@28
+tb_ds_project.user_project.modulator.pw_modulator.double_slope_en
+tb_ds_project.user_project.modulator.pw_modulator.dual_slope_en
+@22
+tb_ds_project.user_project.modulator.pw_modulator.compare_max[7:0]
+@28
+tb_ds_project.user_project.modulator.pw_modulator.direction
+@22
+tb_ds_project.user_project.modulator.pw_modulator.compare_value[7:0]
+@28
+tb_ds_project.user_project.modulator.pw_modulator.compare_value_at_max
 [pattern_trace] 1
 [pattern_trace] 0

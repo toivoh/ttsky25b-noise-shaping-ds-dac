@@ -45,6 +45,22 @@ module tb_ds_project();
 		.rst_n  (rst_n)     // not reset
 	);
 
+	wire pulse_toggle = uio_out[0];
+	wire pwm_out = uio_out[7];
+	reg last_pulse_toggle, pulse_toggled;
+	int pulse_width_measured;
+	always_ff @(posedge clk) begin
+		if (!rst_n) begin
+			pulse_toggled = 0;
+			pulse_width_measured = 0;
+		end else begin
+			pulse_width_measured <= (pulse_toggled ? 0 : pulse_width_measured) + pwm_out;
+		end
+		pulse_toggled <= (pulse_toggle != last_pulse_toggle);
+		last_pulse_toggle <= pulse_toggle;
+	end
+
+
 `ifndef GL_TEST
 	wire [15:0] reg0 = user_project.registers[0];
 	wire [15:0] reg1 = user_project.registers[1];

@@ -68,7 +68,7 @@ class DeltaSigma:
 		if self.noise_mode == 0: quant_noise = 0
 		elif self.noise_mode == 1: quant_noise = quant_noise1 # rectangle noise
 		elif self.noise_mode == 3: quant_noise = quant_noise1 - quant_noise2 # triangle noise
-		else: raise Error("invalid noise mode")
+		else: raise Exception("invalid noise mode")
 
 #		print("quant_noise =", hex(quant_noise))
 
@@ -125,13 +125,13 @@ async def write_reg(dut, addr, value):
 	await ClockCycles(dut.clk, 3)
 
 
-async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choice):
+async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choice, period=-1, cover_int_range=False, pwm_mode=0):
 	dut.uio_in.value = 16
 	dut.rst_n.value = 0
 	await ClockCycles(dut.clk, 10)
 	dut.rst_n.value = 1
 
-	period = MIN_PERIOD + 2*n_decorrelate
+	period = max(period, MIN_PERIOD + 2*n_decorrelate)
 
 	u_lshift = MAX_U_RSHIFT - u_rshift
 	eff_frac_bits = FRAC_BITS - u_lshift
@@ -139,7 +139,7 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choic
 	int_mask = ((1 << 16) - 1) & ~frac_mask
 
 	await write_reg(dut, 2, ((noise_mode&3) << 14) | ((n_decorrelate&15)<<8) | ((coeff_choice&63)<<2))
-	reg1_value = (period&255) | ((u_rshift&15) << 8)
+	reg1_value = ((period-1)&255) | ((u_rshift&15) << 8) | ((pwm_mode&3)<<14)
 	await write_reg(dut, 1, reg1_value | (1 << 13)) # turn on force_err to keep err at zero while  we change u_rshift and u
 	await write_reg(dut, 0, 1 << (FRAC_BITS - 1 - u_lshift))
 	await write_reg(dut, 1, reg1_value | (1 << 12)) # turn on reset_lfsr (turns off after one pulse)
@@ -150,7 +150,7 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choic
 	elif coeff_choice == 1: coeffs = [ 1, -3, 3]
 	elif coeff_choice == 2: coeffs = [-1, 2]
 	elif coeff_choice == 3: coeffs = [1]
-	else: raise Error("Unsupported coeff_choice")
+	else: raise Exception("Unsupported coeff_choice")
 
 
 #	ds = DeltaSigma(noise_mode, n_decorrelate, [1, -4, 6, -4])
@@ -166,12 +166,19 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choic
 #	print("pt = ", pt)
 #	for i in range(256):
 #	for i in range(4):
+	next_pw_expected = -1
 	for i in range(4 if SHORT_TEST else 256):
 		u = i*i
-		# Alternate the integer bits between lowest and highest to test the range
-		u &= frac_mask
-		u |= (i&1) * int_mask
-		#u = 0 if i == 0 else (1 << (FRAC_BITS-1))
+
+		if cover_int_range:
+			# Try to sweep through the range of integer bit values
+			u &= frac_mask
+			u |= (i<<8) & int_mask
+		else:
+			# Alternate the integer bits between lowest and highest to test the range
+			u &= frac_mask
+			u |= (i&1) * int_mask
+			#u = 0 if i == 0 else (1 << (FRAC_BITS-1))
 
 #		print("u =", u)
 		await write_reg(dut, 0, u)
@@ -181,12 +188,23 @@ async def test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choic
 			await ClockCycles(dut.clk, 1)
 		pt = not pt
 
-		y_expected = ds.process(u << u_lshift)
-		y_expected &= PW_MASK
+		y_expected0 = ds.process(u << u_lshift)
+		y_expected = y_expected0 & PW_MASK
 		y = dut.uo_out.value.integer
 
 #		print((y_expected, y))
 		assert y == y_expected
+
+		await ClockCycles(dut.clk, 1) # Wait one additional cycle after pulse_toggle toggled before reading out pulse_width_measured
+		pulse_width_measured = dut.pulse_width_measured.value
+
+		#print("next_pw_expected =", next_pw_expected)
+		#print("pulse_width_measured =", pulse_width_measured)
+		#print("y_expected0 =", y_expected0)
+
+		if next_pw_expected >= 0: assert pulse_width_measured == next_pw_expected
+
+		next_pw_expected = max(0, min(period, y_expected0))
 
 
 @cocotb.test()
@@ -226,3 +244,6 @@ async def test_project(dut):
 			print("\nu_rshift =", u_rshift)
 			await test_delta_sigma(dut, u_rshift, noise_mode, n_decorrelate, coeff_choice)
 
+	# Test pulse width over the whole range
+	await test_delta_sigma(dut, u_rshift=0, noise_mode=3, n_decorrelate=0, coeff_choice=0, period=128, cover_int_range=True, pwm_mode=0)
+	await test_delta_sigma(dut, u_rshift=0, noise_mode=3, n_decorrelate=0, coeff_choice=0, period=128, cover_int_range=True, pwm_mode=3)
