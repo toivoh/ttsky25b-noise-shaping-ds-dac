@@ -71,5 +71,11 @@ module tb_ds_project();
 	wire [SREG_BITS-1:0] sreg0 = user_project.modulator.ds_mod.sreg[0];
 	wire [SREG_BITS-1:0] sreg1 = user_project.modulator.ds_mod.sreg[1];
 	wire [SREG_BITS-1:0] sreg2 = user_project.modulator.ds_mod.sreg[2];
+
+	localparam LFSR_BITS = 22;
+
+	reg [LFSR_BITS-1:0] lfsr_state_sampled;
+	always_ff @(posedge clk) if (user_project.modulator.ds_mod.do_step_lfsr) lfsr_state_sampled <= user_project.modulator.ds_mod.next_lfsr_state;
+
 `endif
 endmodule
