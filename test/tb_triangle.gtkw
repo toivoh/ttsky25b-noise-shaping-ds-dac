@@ -1,0 +1,38 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun Nov  9 09:11:48 2025
+[*]
+[dumpfile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_ds_project.vcd"
+[dumpfile_mtime] "Sun Nov  9 09:09:37 2025"
+[dumpfile_size] 110207
+[savefile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_triangle.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] -1 -1
+*-25.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_ds_project.
+[sst_width] 297
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 158
+@28
+tb_ds_project.rst_n
+tb_ds_project.clk
+@200
+-
+@22
+tb_ds_project.user_project.octave[3:0]
+@200
+-
+@22
+tb_ds_project.user_project.u16[15:0]
+tb_ds_project.user_project.delta_u16[15:0]
+tb_ds_project.user_project.u16_sum[15:0]
+@201
+-
+@28
+tb_ds_project.user_project.u_direction
+tb_ds_project.user_project.next_u_direction
+tb_ds_project.user_project.update_u
+[pattern_trace] 1
+[pattern_trace] 0

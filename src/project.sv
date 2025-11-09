@@ -26,7 +26,7 @@ module tt_um_toivoh_delta_sigma #(
 
 
 	localparam ADDR_BITS = 3;
-	localparam NUM_REGS = 3;
+	localparam NUM_REGS = 4;
 
 
 	(* mem2reg *) reg [15:0] registers[NUM_REGS];
@@ -48,6 +48,34 @@ module tt_um_toivoh_delta_sigma #(
 	wire data_part = data_part_sreg[1];
 	wire last_data_part = data_part_sreg[0];
 
+	// Triangle wave generator
+	// -----------------------
+
+	localparam OCTAVE_BITS = 4;
+	wire [OCTAVE_BITS-1:0] octave = registers[3][7:4];
+
+	reg u_direction;
+	wire [15:0] u16 = registers[0];
+	wire [15:0] delta_u16 = 'b101010101010101 >> ~octave;
+	wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
+
+	reg next_u_direction;
+	reg update_u;
+	always_comb begin
+		update_u = 1;
+		next_u_direction = u_direction;
+
+		if (u_direction == 0) begin
+			if (u16_sum[15:14] == '1) begin
+				update_u = 0; next_u_direction = 1;
+			end
+		end else begin
+			if (u16_sum[15:14] == '0) begin
+				update_u = 0; next_u_direction = 0;
+			end
+		end
+	end
+
 	// Register input
 	// --------------
 	reg [7:0] data_low;
@@ -65,14 +93,19 @@ module tt_um_toivoh_delta_sigma #(
 			registers[0] <= 1 << (FRAC_BITS - 1);
 			registers[1] <= (IN_BITS-16) << 8;
 			registers[2] <= '0;
+			registers[3] <= '0;
 			// TODO: more registers?
+			u_direction <= 1;
 		end else begin
 			if (pulse_done) registers[1][12] <= 0; // TODO: better reset condition?
+			if (pulse_done && update_u) registers[0] <= u16_sum;
 
 			if (data16_we && addr == 0) registers[0] <= data16_in;
 			if (data16_we && addr == 1) registers[1] <= data16_in;
 			if (data16_we && addr == 2) registers[2] <= data16_in;
+			if (data16_we && addr == 3) registers[3] <= data16_in;
 			// TODO: more registers?
+			u_direction <= next_u_direction;
 		end
 	end
 
