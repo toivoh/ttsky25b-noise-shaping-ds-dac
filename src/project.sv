@@ -54,24 +54,30 @@ module tt_um_toivoh_delta_sigma #(
 	localparam OCTAVE_BITS = 4;
 	wire [OCTAVE_BITS-1:0] octave = registers[3][7:4];
 
-	reg u_direction;
+	wire [15:0] u16_sum;
+	wire u16_sum_valid;
+
+	reg u_direction; // 0 = up (don't invert delta_u16)
 	wire [15:0] u16 = registers[0];
 	wire [15:0] delta_u16 = 'b101010101010101 >> ~octave;
-	wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
+	//wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
 
 	reg next_u_direction;
 	reg update_u;
 	always_comb begin
-		update_u = 1;
+		update_u = 0;
 		next_u_direction = u_direction;
 
-		if (u_direction == 0) begin
-			if (u16_sum[15:14] == '1) begin
-				update_u = 0; next_u_direction = 1;
-			end
-		end else begin
-			if (u16_sum[15:14] == '0) begin
-				update_u = 0; next_u_direction = 0;
+		if (u16_sum_valid) begin
+			update_u = 1;
+			if (u_direction == 0) begin
+				if (u16_sum[15:14] == '1) begin
+					update_u = 0; next_u_direction = 1;
+				end
+			end else begin
+				if (u16_sum[15:14] == '0) begin
+					update_u = 0; next_u_direction = 0;
+				end
 			end
 		end
 	end
@@ -95,10 +101,10 @@ module tt_um_toivoh_delta_sigma #(
 			registers[2] <= '0;
 			registers[3] <= '0;
 			// TODO: more registers?
-			u_direction <= 1;
+			u_direction <= 0;
 		end else begin
 			if (pulse_done) registers[1][12] <= 0; // TODO: better reset condition?
-			if (pulse_done && update_u) registers[0] <= u16_sum;
+			if (update_u) registers[0] <= u16_sum;
 
 			if (data16_we && addr == 0) registers[0] <= data16_in;
 			if (data16_we && addr == 1) registers[1] <= data16_in;
@@ -130,7 +136,8 @@ module tt_um_toivoh_delta_sigma #(
 		.u(u), .u_rshift(u_rshift), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate), .coeff_choice(coeff_choice),
 		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .compare_max(compare_max),
 		.pulse_done(pulse_done), .pwm_out(pwm_out), .pulse_width_out(pulse_width),
-		.force_err(force_err), .forced_err_value('0)
+		.force_err(force_err), .forced_err_value('0),
+		.alt_src1(delta_u16), .alt_inv_src1(u_direction), .result_out(u16_sum), .result_out_valid(u16_sum_valid)
 	);
 
 	reg pulse_toggle;

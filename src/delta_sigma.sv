@@ -7,6 +7,7 @@
 
 `define SRC1_SEL_ACC       0
 `define SRC1_SEL_LFSR_PERM 1
+`define SRC1_SEL_ALT       2
 
 `define SRC2_SEL_BITS 2
 `define SRC2_SEL_U              0
@@ -16,8 +17,9 @@
 //`define SRC2_SEL_NOISE2         5
 
 
-`define DEST_SEL_ACC        0
-`define DEST_SEL_LFSR_STATE 1
+`define DEST_SEL_NONE       0
+`define DEST_SEL_ACC        1
+`define DEST_SEL_LFSR_STATE 2
 
 module bitshuffle #(parameter IN_BITS=8, OUT_BITS=8, parameter PATTERN='h01234567) (
 		input wire [IN_BITS-1:0] in,
@@ -62,6 +64,11 @@ module delta_sigma_modulator #(
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
 		input wire [5:0] coeff_choice, // only coeff_choice[COEFF_CHOICE_BITS-1:0] are used
 
+		input wire [15:0] alt_src1,
+		input wire alt_inv_src1,
+		output wire [15:0] result_out,
+		output wire result_out_valid,
+
 		output wire y_valid_out,
 		output wire [OUT_BITS-1:0] y, // output signal
 
@@ -76,7 +83,7 @@ module delta_sigma_modulator #(
 	localparam ACC_BITS = SREG_BITS + NUM_TAPS;
 
 	localparam STATE_BITS = 6;
-	localparam INITIAL_STATE = 1;
+	localparam INITIAL_STATE = 0;
 
 	// Bottom permute from top: 0x735_0492816a
 	localparam BOTTOM_PATTERN_LOW =    'h0492816a;
@@ -102,7 +109,7 @@ module delta_sigma_modulator #(
 
 	// Contol signals
 	// not registers
-	reg src1_sel;
+	reg [1:0] src1_sel;
 	reg [`SRC2_SEL_BITS-1:0] src2_sel;
 	reg src1_en, src2_en;
 	reg inv_src2, inv_src1;
@@ -110,9 +117,10 @@ module delta_sigma_modulator #(
 	reg [SHIFT_COUNT_BITS-1:0] rshift_count;
 	reg shift_sreg, rotate_sreg;
 	reg y_valid;
-	reg dest_sel;
+	reg [1:0] dest_sel;
 	reg do_step_lfsr;
 	reg truncate_acc;
+	reg ext_result_valid;
 	always_comb begin
 		src1_sel = `SRC1_SEL_ACC;
 		src2_sel = `SRC2_SEL_SREG;
@@ -128,6 +136,7 @@ module delta_sigma_modulator #(
 		dest_sel = `DEST_SEL_ACC;
 		do_step_lfsr = 0;
 		truncate_acc = 0;
+		ext_result_valid = 0;
 
 		// For NUM_TAPS = 4
 		case (state[5:4])
@@ -135,8 +144,16 @@ module delta_sigma_modulator #(
 // ----------------------------------------------------
 
 			0: case (state[3:0])
+				0: begin
+					// Sum for triangle generator
+					src1_sel = `SRC1_SEL_ALT;
+					src2_sel = `SRC2_SEL_U;
+					rshift_count = 0;
+					inv_src1 = alt_inv_src1;
+					dest_sel = `DEST_SEL_NONE;
+					ext_result_valid = 1;
+				end
 				// Add noise
-				//0: not reached, INITIAL_STATE = 1
 				1: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; src2_en = noise_mode[0]; end // Add uniform noise if noise_mode[0]
 				2: begin; dest_sel = `DEST_SEL_LFSR_STATE; src1_sel = `SRC1_SEL_LFSR_PERM; src2_en = 0; end // permute lfsr_state
 				3: begin; src2_sel = `SRC2_SEL_NOISE1; rshift_count = 0; inv_src2 = 1; src2_en = noise_mode[1]; end // Subtract uniform noise ==> triangle noise if noise_mode[1]
@@ -334,6 +351,7 @@ module delta_sigma_modulator #(
 	end
 
 	assign y_valid_out = y_valid;
+	assign result_out_valid = ext_result_valid;
 
 
 	wire signed [ACC_BITS-1:0] next_acc;
@@ -370,13 +388,13 @@ module delta_sigma_modulator #(
 		if (reset || reset_lfsr) begin 
 			lfsr_state <= '0;
 		end else begin
-			if (en && dest_sel == `DEST_SEL_LFSR_STATE) lfsr_state <= next_lfsr_state;
+			if (en && (dest_sel & `DEST_SEL_LFSR_STATE)) lfsr_state <= next_lfsr_state;
 		end
 
 		if (reset || reset_lfsr) begin 
 			acc <= '0;
 		end else begin
-			if (en && dest_sel == `DEST_SEL_ACC) acc <= next_acc;
+			if (en && (dest_sel & `DEST_SEL_ACC)) acc <= next_acc;
 		end
 	end
 
@@ -403,6 +421,7 @@ module delta_sigma_modulator #(
 		case (src1_sel)
 			`SRC1_SEL_ACC: src1 = acc;
 			`SRC1_SEL_LFSR_PERM: src1 = lfsr_state_permuted;
+			`SRC1_SEL_ALT: src1 = {alt_src1, {(IN_BITS-16){1'b0}}};
 			default: src1 = 'X;
 		endcase
 		if (!src1_en) src1 = '0;
@@ -461,6 +480,8 @@ module delta_sigma_modulator #(
 	wire [LFSR_BITS-1:0] next_lfsr_state_step = {lfsr_state_permuted[LFSR_BITS-1-1:0], lfsr_bit};
 
 	assign next_lfsr_state = do_step_lfsr ? next_lfsr_state_step : sum;
+
+	assign result_out = sum[IN_BITS-1 -: 16];
 endmodule : delta_sigma_modulator
 
 
@@ -480,6 +501,11 @@ module delta_sigma_pw_modulator #(
 		input wire [1:0] noise_mode, // 0: no noise, 1: uniform, 3: triangle
 		input wire [3:0] n_decorrelate, // number decorrelation steps for the noise
 		input wire [5:0] coeff_choice,
+
+		input wire [15:0] alt_src1,
+		input wire alt_inv_src1,
+		output wire [15:0] result_out,
+		output wire result_out_valid,
 
 		input wire dual_slope_en, double_slope_en,
 		input wire [PWM_BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)
@@ -504,7 +530,8 @@ module delta_sigma_pw_modulator #(
 	delta_sigma_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .OUT_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS), .SHIFT_COUNT_BITS(SHIFT_COUNT_BITS), .MAX_LEFT_SHIFT(MAX_LEFT_SHIFT)) ds_mod(
 		.clk(clk), .reset(reset), .en(!y_valid || pulse_done), .reset_lfsr(reset_lfsr),
 		.u(u), .u_rshift(u_rshift), .force_err(force_err), .forced_err_value(forced_err_value), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate), .coeff_choice(coeff_choice),
-		.y(y), .y_valid_out(y_valid)
+		.y(y), .y_valid_out(y_valid),
+		.alt_src1(alt_src1), .alt_inv_src1(alt_inv_src1), .result_out_valid(result_out_valid), .result_out(result_out)
 	);
 	pulse_width_modulator #(.BITS(PWM_BITS)) pw_modulator(
 		.clk(clk), .reset(reset),
