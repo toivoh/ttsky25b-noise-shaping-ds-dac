@@ -82,7 +82,8 @@ module tt_um_toivoh_delta_sigma #(
 	wire force_err = registers[1][13];
 	wire dual_slope_en = registers[1][14];
 	wire double_slope_en = registers[1][15];
-	wire [PWM_BITS-1:0] compare_max = registers[1][PWM_BITS-1:0];
+	//wire [PWM_BITS-1:0] compare_max = registers[1][PWM_BITS-1:0];
+	wire [PWM_BITS-1:0] compare_max = registers[1][PWM_BITS-1-1:0]; // The top PWM bit is for saturation, don't need it for compare_max
 
 	//localparam PULSE_COUNTER_BITS = 6;
 
