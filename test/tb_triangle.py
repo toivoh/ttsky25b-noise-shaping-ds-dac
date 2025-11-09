@@ -32,6 +32,6 @@ async def test_project(dut):
 	reg1_value = period-1
 	await write_reg(dut, 1, reg1_value)
 
-	for i in range(16):
-		await write_reg(dut, 3, i << 4)
-		await ClockCycles(dut.clk, 256*period)
+	for i in range(512):
+		await write_reg(dut, 3, i)
+		await ClockCycles(dut.clk, period)

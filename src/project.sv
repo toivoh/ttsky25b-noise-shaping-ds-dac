@@ -51,34 +51,41 @@ module tt_um_toivoh_delta_sigma #(
 	// Triangle wave generator
 	// -----------------------
 
-	localparam OCTAVE_BITS = 4;
-	wire [2:0] note = registers[3][2:0];
-	wire [OCTAVE_BITS-1:0] octave = registers[3][6:3];
-
 	wire [15:0] u16_sum;
 	wire u16_sum_valid;
 
 	reg u_direction; // 0 = up (don't invert delta_u16)
+
 	wire [15:0] u16 = registers[0];
+
+/*
+	localparam OCTAVE_BITS = 4;
+	wire [2:0] note = registers[3][4:0];
+	wire [OCTAVE_BITS-1:0] octave = registers[3][8:5];
 
 	//wire [14:0] delta_u16_0 = 15'b101010101010101;
 	reg [14:0] delta_u16_0;
 	always_comb begin
-		case (note)
-			0: delta_u16_0 = 15'b100000000000000;
-			1: delta_u16_0 = 15'b110000000000000;
-			2: delta_u16_0 = 15'b101000000000000;
-			3: delta_u16_0 = 15'b100100000000000;
-			4: delta_u16_0 = 15'b111100000000000;
-			5: delta_u16_0 = 15'b110110000000000;
-			6: delta_u16_0 = 15'b101101000000000;
-			7: delta_u16_0 = 15'b101010101010101;
-			default: delta_u16_0 = 'X;
-		endcase
+#		case (note)
+#			0: delta_u16_0 = 15'b100000000000000;
+#			1: delta_u16_0 = 15'b110000000000000;
+#			2: delta_u16_0 = 15'b101000000000000;
+#			3: delta_u16_0 = 15'b100100000000000;
+#			4: delta_u16_0 = 15'b111100000000000;
+#			5: delta_u16_0 = 15'b110110000000000;
+#			6: delta_u16_0 = 15'b101101000000000;
+#			7: delta_u16_0 = 15'b101010101010101;
+#			default: delta_u16_0 = 'X;
+#		endcase
+		delta_u16_0 = (1 << 14) | note << (14-5);
+		if (note == 'b0101) delta_u16_0[10:0] = 10'b0101010101;
 	end
 
 	wire [15:0] delta_u16 = delta_u16_0 >> ~octave;
 	//wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
+*/
+
+	wire [15:0] delta_u16 = registers[3][8:0];
 
 	reg next_u_direction;
 	reg update_u;
