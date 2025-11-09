@@ -53,7 +53,7 @@ module delta_sigma_modulator #(
 		MAX_LEFT_SHIFT = 2,
 		LFSR_BITS = 22, // must be even, and match the bit shuffle pattern used
 		SREG_INT_BITS = 2,
-		COEFF_CHOICE_BITS = 4
+		COEFF_CHOICE_BITS = 2
 	) (
 		input wire clk, reset, en,
 		input wire reset_lfsr,
@@ -182,7 +182,8 @@ module delta_sigma_modulator #(
 // -------------------------------------------
 
 			1: begin
-				if (coeff_choice[COEFF_CHOICE_BITS-1:2] == 0) case (coeff_choice[1:0]) 
+				//if (coeff_choice[COEFF_CHOICE_BITS-1:2] == 0) case (coeff_choice[1:0]) 
+				case (coeff_choice[1:0]) 
 					0: case (state[3:0]) // Fourth order: (-1) 4 -6 4 -1
 						0: begin
 							// [4 -1]
@@ -273,6 +274,7 @@ module delta_sigma_modulator #(
 						end
 					endcase
 				endcase
+/*
 				else if (coeff_choice[COEFF_CHOICE_BITS-1:3] == 1) begin
 					case (state[3:0])
 // ### Fourth order with one zero not quite at DC: (-1), 4-a, -6+2a, 4-a, -1
@@ -321,6 +323,7 @@ module delta_sigma_modulator #(
 					endcase
 					
 				end
+*/
 			end
 
 // Recorrelate lfsr_state

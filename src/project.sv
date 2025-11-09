@@ -52,14 +52,32 @@ module tt_um_toivoh_delta_sigma #(
 	// -----------------------
 
 	localparam OCTAVE_BITS = 4;
-	wire [OCTAVE_BITS-1:0] octave = registers[3][7:4];
+	wire [2:0] note = registers[3][2:0];
+	wire [OCTAVE_BITS-1:0] octave = registers[3][6:3];
 
 	wire [15:0] u16_sum;
 	wire u16_sum_valid;
 
 	reg u_direction; // 0 = up (don't invert delta_u16)
 	wire [15:0] u16 = registers[0];
-	wire [15:0] delta_u16 = 'b101010101010101 >> ~octave;
+
+	//wire [14:0] delta_u16_0 = 15'b101010101010101;
+	reg [14:0] delta_u16_0;
+	always_comb begin
+		case (note)
+			0: delta_u16_0 = 15'b100000000000000;
+			1: delta_u16_0 = 15'b110000000000000;
+			2: delta_u16_0 = 15'b101000000000000;
+			3: delta_u16_0 = 15'b100100000000000;
+			4: delta_u16_0 = 15'b111100000000000;
+			5: delta_u16_0 = 15'b110110000000000;
+			6: delta_u16_0 = 15'b101101000000000;
+			7: delta_u16_0 = 15'b101010101010101;
+			default: delta_u16_0 = 'X;
+		endcase
+	end
+
+	wire [15:0] delta_u16 = delta_u16_0 >> ~octave;
 	//wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
 
 	reg next_u_direction;
