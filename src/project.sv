@@ -85,7 +85,7 @@ module tt_um_toivoh_delta_sigma #(
 	//wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
 */
 
-	wire [15:0] delta_u16 = registers[3][12:0];
+	wire [15:0] delta_u16 = registers[3][13:0];
 
 	reg next_u_direction;
 	reg update_u;
