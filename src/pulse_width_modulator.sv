@@ -10,7 +10,7 @@ module pulse_width_modulator #(
 	) (
 		input wire clk, reset,
 
-		input wire dual_slope_en, double_slope_en,
+		input wire dual_slope_en, double_slope_en, ddr_en,
 		input wire [BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)
 
 		input wire [BITS-1:0] pulse_width, // range is -1/4*2^BITS <= pulse_width < 3/4*2^BITS
@@ -26,7 +26,7 @@ module pulse_width_modulator #(
 	wire compare_value_at_max = compare_value >= compare_max;
 
 	// not registers
-	reg r_pulse_done;
+	reg r_restart, r_pulse_done;
 	reg signed [2:0] delta;
 	reg next_direction;
 	always_comb begin
@@ -40,14 +40,17 @@ module pulse_width_modulator #(
 				next_direction = 0;
 			end
 
-			r_pulse_done = (direction == 0) & (compare_value[BITS-1:1] == 0);
+			r_restart = (direction == 0) && (compare_value[BITS-1:1] == 0) && (double_slope_en || compare_value[0] == 0);
+			r_pulse_done = (direction == 1) && compare_value_at_max;
 		end else begin
-			delta = 1;
+			delta = double_slope_en ? 2 : 1;
 			next_direction = 1;
 
-			r_pulse_done = compare_value_at_max;
+			r_restart = compare_value_at_max;
+			r_pulse_done = r_restart;
 		end
 	end
+//	assign pulse_done = r_restart;
 	assign pulse_done = r_pulse_done;
 
 	always_ff @(posedge clk) begin
@@ -55,13 +58,37 @@ module pulse_width_modulator #(
 			direction <= 1;
 			compare_value <= double_slope_en;
 		end else begin
-			if (pulse_done) compare_value <= double_slope_en;
+			if (r_restart) compare_value <= double_slope_en;
 			else compare_value <= $signed(compare_value) + $signed(delta);
 
-			direction <= pulse_done ? 1 : next_direction;
+			direction <= r_restart ? 1 : next_direction;
 		end
 	end
 
 	// TODO: Hold the pulse together? Now it's the low pulse that is continuous -- shouldn't make a difference though
-	assign pwm_out = pulse_width[BITS-1] ? !pulse_width[BITS-2] : (compare_value < pulse_width);
+	//assign pwm_out = pulse_width[BITS-1] ? !pulse_width[BITS-2] : (compare_value < pulse_width);
+
+	wire pwm_cmp = (compare_value < pulse_width);
+	wire pwm_eq = (compare_value == pulse_width);
+
+	wire pwm1_0 = pwm_cmp || (ddr_en && pwm_eq && pulse_width[0]);
+	wire pwm2_0 = pwm_cmp || (ddr_en && pwm_eq && !pulse_width[0]);
+
+	wire pwm1 = pulse_width[BITS-1] ? !pulse_width[BITS-2] : pwm1_0;
+	wire pwm2 = pulse_width[BITS-1] ? !pulse_width[BITS-2] : pwm2_0;
+
+	/*
+	reg pwm_reg;
+	always_ff @(posedge clk) pwm_reg <= pwm1;
+	assign pwm_out = pwm_reg;
+	*/
+	
+	reg pwm_reg, pwm_reg_n;
+	always_ff @(posedge clk) pwm_reg <= !pwm2;
+
+	//always_ff @(negedge clk) pwm_reg_n <= !pwm1 | !ddr_en; // Note: negedge
+	//assign pwm_out = !(pwm_reg & pwm_reg_n);
+
+	always_ff @(negedge clk) pwm_reg_n <= !pwm1 && ddr_en; // Note: negedge
+	assign pwm_out = !(pwm_reg || pwm_reg_n);
 endmodule : pulse_width_modulator

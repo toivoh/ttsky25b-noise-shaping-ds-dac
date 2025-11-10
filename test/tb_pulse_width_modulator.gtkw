@@ -1,18 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Mon Nov  3 05:28:25 2025
+[*] Mon Nov 10 16:33:10 2025
 [*]
-[dumpfile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_pulse_width_modulator.vcd"
-[dumpfile_mtime] "Mon Nov  3 05:28:06 2025"
-[dumpfile_size] 4647
-[savefile] "/home/toivo/code/tinytapeout/anemonesynth2/test/tb_pulse_width_modulator.gtkw"
-[timestart] 0
-[size] 1952 969
+[dumpfile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_pulse_width_modulator.vcd"
+[dumpfile_mtime] "Mon Nov 10 16:32:07 2025"
+[dumpfile_size] 21381
+[savefile] "/home/toivo/code/tinytapeout/ttsky25b-noise-shaping-ds-dac/test/tb_pulse_width_modulator.gtkw"
+[timestart] 1119900000
+[size] 2791 969
 [pos] -1 -1
-*-26.000000 109700000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-27.000000 2195600000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] tb_pulse_width_modulator.
 [sst_width] 297
-[signals_width] 182
+[signals_width] 194
 [sst_expanded] 1
 [sst_vpaned_height] 287
 @420
@@ -23,6 +23,12 @@ tb_pulse_width_modulator.clk
 @200
 -
 @28
+tb_pulse_width_modulator.pw_modulator.dual_slope_en
+tb_pulse_width_modulator.pw_modulator.double_slope_en
+tb_pulse_width_modulator.pw_modulator.ddr_en
+@200
+-
+@29
 tb_pulse_width_modulator.pw_modulator.direction
 @22
 tb_pulse_width_modulator.pw_modulator.compare_value[10:0]
@@ -34,7 +40,39 @@ tb_pulse_width_modulator.pw_modulator.pulse_done
 -
 @22
 tb_pulse_width_modulator.pw_modulator.pulse_width[10:0]
-@29
+@28
 tb_pulse_width_modulator.pw_modulator.pwm_out
+@200
+-
+-
+@28
+tb_pulse_width_modulator.pw_modulator.pwm_eq
+tb_pulse_width_modulator.pw_modulator.pwm_cmp
+@200
+-
+@28
+tb_pulse_width_modulator.pw_modulator.pwm1_0
+tb_pulse_width_modulator.pw_modulator.pwm2_0
+@200
+-
+@28
+tb_pulse_width_modulator.pw_modulator.pwm1
+tb_pulse_width_modulator.pw_modulator.pwm2
+@200
+-
+@28
+tb_pulse_width_modulator.pw_modulator.pwm_reg
+tb_pulse_width_modulator.pw_modulator.pwm_reg_n
+@200
+-
+@420
+tb_pulse_width_modulator.counter
+@28
+tb_pulse_width_modulator.clk
+tb_pulse_width_modulator.pw_modulator.pwm_out
+@22
+tb_pulse_width_modulator.pw_modulator.pulse_width[10:0]
+@200
+-
 [pattern_trace] 1
 [pattern_trace] 0

@@ -13,15 +13,19 @@ async def test_project(dut):
 	clock = Clock(dut.clk, 10, units="us")
 	cocotb.start_soon(clock.start())
 
-	for mode in range(3):
-		dut.dual_slope_en.value = (mode >= 1);
-		dut.double_slope_en.value = (mode == 2);
+#	for mode in range(3):
+#		dut.dual_slope_en.value = (mode >= 1);
+#		dut.double_slope_en.value = (mode == 2);
+	for mode in (0,1,3,7,6):
+		dut.dual_slope_en.value = mode&1;
+		dut.double_slope_en.value = (mode>>1)&1;
+		dut.ddr_en.value = (mode>>2)&1;
 
 		dut.rst_n.value = 0
 		await ClockCycles(dut.clk, 10)
 		dut.rst_n.value = 1
 
-		period = 4
+		period = 6
 		dut.compare_max.value = period-1
 
 		for j in range(-1,period+2):

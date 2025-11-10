@@ -142,6 +142,7 @@ module tt_um_toivoh_delta_sigma #(
 
 	wire [IN_BITS-1:0] u = {registers[0], {(IN_BITS-16){1'b0}}};
 	wire [SHIFT_COUNT_BITS-1:0] u_rshift = registers[1][8+SHIFT_COUNT_BITS-1 -: SHIFT_COUNT_BITS];
+	wire ddr_en = registers[1][11];
 	wire reset_lfsr = registers[1][12];
 	wire force_err = registers[1][13];
 	wire dual_slope_en = registers[1][14];
@@ -159,7 +160,7 @@ module tt_um_toivoh_delta_sigma #(
 	delta_sigma_pw_modulator #(.IN_BITS(IN_BITS), .FRAC_BITS(FRAC_BITS), .PWM_BITS(PWM_BITS), .NUM_TAPS(NUM_TAPS)) modulator(
 		.clk(clk), .reset(reset), .reset_lfsr(reset_lfsr),
 		.u(u), .u_rshift(u_rshift), .noise_mode(noise_mode), .n_decorrelate(n_decorrelate), .coeff_choice(coeff_choice),
-		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .compare_max(compare_max),
+		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .ddr_en(ddr_en), .compare_max(compare_max),
 		.pulse_done(pulse_done), .pwm_out(pwm_out), .pulse_width_out(pulse_width),
 		.force_err(force_err), .forced_err_value('0),
 		.alt_src1(delta_u16), .alt_inv_src1(u_direction), .result_out(u16_sum), .result_out_valid(u16_sum_valid)
@@ -186,15 +187,12 @@ module tt_um_toivoh_delta_sigma #(
 		end
 	end
 
-	reg pwm_reg;
-	always_ff @(posedge clk) pwm_reg <= pwm_out;
-
 	// not registers
 	reg [7:0] uio_out_r, uio_oe_r;
 	always_comb begin
 		uio_out_r = '0; uio_oe_r = '0;
 
-		uio_oe_r[7] = 1'b1; uio_out_r[7] = pwm_reg;
+		uio_oe_r[7] = 1'b1; uio_out_r[7] = pwm_out;
 		uio_oe_r[6] = 1'b1; uio_out_r[6] = echo_in;
 		uio_oe_r[0] = 1'b1; uio_out_r[0] = pulse_toggle;
 	end

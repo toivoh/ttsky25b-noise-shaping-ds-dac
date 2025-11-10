@@ -16,6 +16,7 @@ module tb_pulse_width_modulator #(parameter BITS = 11) ();
 
 	reg dual_slope_en = 0;
 	reg double_slope_en = 0;
+	reg ddr_en = 0;
 
 	reg [BITS-1:0] compare_max = 0;
 	reg [BITS-1:0] pulse_width = 0;
@@ -24,7 +25,7 @@ module tb_pulse_width_modulator #(parameter BITS = 11) ();
 
 	pulse_width_modulator #(.BITS(BITS)) pw_modulator(
 		.clk(clk), .reset(reset),
-		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en),
+		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .ddr_en(ddr_en),
 		.compare_max(compare_max),
 		.pulse_width(pulse_width),
 		.pulse_done(pulse_done),

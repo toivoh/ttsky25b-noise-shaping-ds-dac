@@ -510,7 +510,7 @@ module delta_sigma_pw_modulator #(
 		output wire [15:0] result_out,
 		output wire result_out_valid,
 
-		input wire dual_slope_en, double_slope_en,
+		input wire dual_slope_en, double_slope_en, ddr_en,
 		input wire [PWM_BITS-1:0] compare_max, // controls the PWM period, pulse_width should be <= compare_max (less if´one pulse/period is wanted)
 
 		output wire pulse_done,
@@ -538,7 +538,7 @@ module delta_sigma_pw_modulator #(
 	);
 	pulse_width_modulator #(.BITS(PWM_BITS)) pw_modulator(
 		.clk(clk), .reset(reset),
-		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .compare_max(compare_max),
+		.dual_slope_en(dual_slope_en), .double_slope_en(double_slope_en), .ddr_en(ddr_en), .compare_max(compare_max),
 		.pulse_width(pulse_width),
 		.pwm_out(pwm_out), .pulse_done(pulse_done)
 	);
