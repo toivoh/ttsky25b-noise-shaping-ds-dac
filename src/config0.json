@@ -18,7 +18,8 @@
   "//": "CLOCK_PERIOD - Increase this in case you are getting setup time violations.",
   "//": "The value is in nanoseconds, so 20ns == 50MHz.",
     "//": "# 1/(19.84 ns) > 50.4 MHz",
-  "CLOCK_PERIOD": 19.84,
+    "//": "# 1/(15 ns) > 66.66 MHz",
+  "CLOCK_PERIOD": 15,
 
   "//": "Hold slack margin - Increase them in case you are getting hold violations.",
   "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
