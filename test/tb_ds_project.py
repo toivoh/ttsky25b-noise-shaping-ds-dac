@@ -133,6 +133,7 @@ async def test_project(dut):
 	if rtl: assert top.registers[2].value.integer == reg2_value
 
 	for (noise_mode, n_decorrelate, coeff_choice) in [(3,5,3), (3,5,2), (3,5,1), (0,0,0), (1,0,0), (1,5,0), (3,5,0), (3,15,0)]:
+	#for (noise_mode, n_decorrelate, coeff_choice) in [(0,0,0), (1,0,0), (1,5,0), (3,5,0), (3,15,0), (3,5,3), (3,5,2), (3,5,1)]:
 	#for (noise_mode, n_decorrelate, coeff_choice) in [(3,5,1), (0,0,0), (1,0,0), (1,5,0), (3,5,0), (3,15,0)]:
 		print("\nnoise_mode = ", noise_mode, ", n_decorrelate = ", n_decorrelate, ", coeff_choice = ", coeff_choice, sep="")
 		for u_rshift in [0] if SHORT_TEST else range(MAX_U_RSHIFT+1):

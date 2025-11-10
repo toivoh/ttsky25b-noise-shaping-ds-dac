@@ -6,10 +6,10 @@
 `default_nettype none
 
 module tt_um_toivoh_delta_sigma #(
-		parameter IN_BITS = 23,
-		FRAC_BITS = 16,
+		parameter IN_BITS = 21,
+		FRAC_BITS = 14,
 		PWM_BITS = 8, // should include one extra bit for noise
-		SHIFT_COUNT_BITS = 4,
+		SHIFT_COUNT_BITS = 3,
 		NUM_TAPS = 4
 	)(
 		input  wire [7:0] ui_in,    // Dedicated inputs
@@ -85,7 +85,7 @@ module tt_um_toivoh_delta_sigma #(
 	//wire [15:0] u16_sum = u16 + (u_direction ? ~delta_u16 : delta_u16) + u_direction;
 */
 
-	wire [15:0] delta_u16 = registers[3][8:0];
+	wire [15:0] delta_u16 = registers[3][11:0];
 
 	reg next_u_direction;
 	reg update_u;
