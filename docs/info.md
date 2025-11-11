@@ -89,6 +89,7 @@ Registers:
 | 0        | `reg0[15:0]`     | `u`               | input signal           |
 | 1        | `reg1[6:0]`      | `period_minus_1`  |                        |
 |          | `reg1[10:8]`     | `u_rshift`        | input shift            |
+|          | `reg1[12]`       | `ddr_en`          | enable DDR mode for PWM|
 |          | `reg1[12]`       | `reset_lfsr`      | for testing            |
 |          | `reg1[13]`       | `force_err_0`     | for testing            |
 |          | `reg1[15:14]`    | `pwm_mode`        |                        |
