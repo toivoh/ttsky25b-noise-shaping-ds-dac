@@ -62,11 +62,20 @@ In this case, a period of 47 cycles may be appropriate, to allow an output swing
 
 #### Adding additional noise to the quantization error
 The default behavior is to let the quantizer calculate the output by rounding the target output to the nearest integer.
-The hope is that the quantization error should behave as white noise. Then, even if some of it feeds through as audible noise at (higher) audible frequencies, it is just a little added noise.
-Round to nearest quantization produces the smallest quantization error, but the statistical properties may be unpredictable.
-If the quantization error ends up including prominent frequency components that change with the input signal, it could create objectionable artifacts in some cases.
+This quantization produces the smallest quantization error, but the statistical properties may be unpredictable.
+If the quantization error ends up including prominent frequency components (that might change with the input signal), it could create objectionable artifacts in some cases, if some of the quantization noise is audible.
 
-TODO: rectangular and triangular noise.
+The noise source (see the block diagram above) can be used to add extra noise to make the quantization error behave more like white noise.
+Two noise modes are supported:
+
+* Adding rectangular noise remove any correlation between quantization errors at different samples
+	* The variance varies depending on the input value: from zero variance when hitting an integer to max variance in the middle between two integers (note that the `reg0 = u` has an offset so those to cases are actually switched)
+	* The maximum quantization error becomes 1 (compared to 0.5 with noise source off).
+* Adding triangular noise additionally removes noise modulation: The variance of the quantization error becomes independent of the input signal.
+	* The maximum quantization error becomes 1.5.
+
+Both of these cases assume that `n_decorrelate` is set high enough so that the noise source produces white noise.
+The statistical properties of the quantization error are not well defined except when adding triangular noise, but if we assume the fractional part of the input signal to be uniformly distributed, then the quantization error has a variance of 1/12, 1/6, and 1/4 respectively for noise off/rectangular/triangular noise respectively.
 
 ### Interface
 
@@ -85,27 +94,94 @@ To write to one,
 Registers:
 
 | Register | Field            | Name              | Description            |
-|----------|------------------|-------------------|------------------------|
+|---------:|:-----------------|:------------------|:-----------------------|
 | 0        | `reg0[15:0]`     | `u`               | input signal           |
-| 1        | `reg1[6:0]`      | `period_minus_1`  |                        |
+| 1        | `reg1[6:0]`      | `max_output`      | controls PWM period    |
 |          | `reg1[10:8]`     | `u_rshift`        | input shift            |
 |          | `reg1[12]`       | `ddr_en`          | enable DDR mode for PWM|
 |          | `reg1[12]`       | `reset_lfsr`      | for testing            |
 |          | `reg1[13]`       | `force_err_0`     | for testing            |
 |          | `reg1[15:14]`    | `pwm_mode`        |                        |
-| 2        | `reg2[3:2]`      | `filter_choice`   |                        |
+| 2        | `reg2[3:2]`      | `filter_mode`     |                        |
 |          | `reg2[11:8]`     | `n_decorrelate`   | noise decorrelation    |
 |          | `reg2[15:14]`    | `noise_mode`      |                        |
-| 3        | `reg3[13:0]`     | `delta_u`         | for triangle generator |
+| 3        | `reg3[12:0]`     | `delta_u`         | for triangle generator |
+
+The actual 21-bit input signal has 7 integer bits and 14 fractional bits, and is formed as
+
+	u_input = ((u << 5) >> u_rshift) - (1 << 13)
+
+The range of output values supported by the pulse width modulator goes from 0 to `max_output`. Adjust the range of `u` and the size of `max_output` to accomodate the range of the input signal plus the quantization noise, while avoiding the need to actually use a pulse width of 0 or `max_output`.
+Set `u_rshift` to get the desired range of the input signal. E g, if the input signal should be able to contribute a value of 0 to 31 to the output pulse width, set `u_rshift = 2` to effectively remove two integer bits from `u_inputs` and be able to control two more of the fractional bits.
+
+The `filter_mode` field chooses between 4 filters:
+
+| `filter_mode` | Filter order | Filter response |
+|--------------:|-------------:|:----------------|
+|             0 |            4 | `-4  6 -4 1`    |
+|             1 |            3 | `-3  3 -1`      |
+|             2 |            2 | `-2  1`         |
+|             3 |            1 | `-1`            |
+
+The filters have transfer functions `(1 - z^-1)^n_z - 1`, where `n_z = 4 - filter_mode`.
+The maximum absolute value of the quantization noise will be the maximum absolute value of the quantization error times `2^n_z - 1`.
+The 4th and maybe 3rd order filters are expected to be most useful.
+
+The pulse width modulator supports 5 different modes, controlled by `pwm_mode` and `ddr_en`:
+
+| `pwm_mode` | `ddr_en` | PWM mode              | PWM period              |
+|-----------:|---------:|:----------------------|:------------------------|
+|          0 |        0 | Non-phase-correct     | `max_output + 1`        |
+|          1 |        0 | Phase-correct         | `2*(max_output + 1)`    |
+|          3 |        0 | Semi-phase-correct    | `max_output + 1`        |
+|          3 |        1 | Phase-correct DDR     | `max_output + 1`        |
+|          2 |        1 | Non-phase-correct DDR | `(max_output + 1) >> 1` |
+
+As the pulse width increases, the semi-phase-correct mode alternates expanding the pulse at the left and right side for every other step.
+The non-phase-correct modes just expand the pulse from left to right, while the phase correct ones expand equally on both directions.
+
+In the non-DDR modes, the output signal can only switch at rising clock edges, while it can switch at either clock edge in the DDR modes.
+The non-DDR phase-correct mode creates the least amount of phase error, but since it doubles the PWM period, it looses one bit of output resolution (which could translate into losing several bits of effective output resolution).
+Of the modes with PWM period `max_output + 1`, the non-phase correct mode is least accurate in centering the pulse (not at all) and the phase correct DDR mode is the most accurate. 
+
+The non-phase correct DDR mode is a bonus mode that comes with some caveats regarding the actual pulse width that it outputs:
+
+* The pulse width (in half cycles) is the output pulse width minus one (saturating at zero)
+* The pulse width might not be correct when the output pulse width is >= `max_output`
+* The pulse width increase from odd to even vs even to odd might not be the same, depending on the duty cycle of the input clock and the delay in the circuit
+
+It is not expected to be a useful mode, but who knows?
+
+The `noise_mode` field sets the noise mode:
+
+| `noise_mode` | Noise mode  |
+|-------------:|:------------|
+|            0 | off         |
+|            1 | rectangular |
+|            3 | triangular  |
+
+The noise source is based on a linear feedback shift register (LFSR), but to make it behave more like white noise, a number of decorrelation steps are applied, given by the `n_decorrelate` field. When the noise mode is off, `n_decorrelate` can be zero. When using noise, `n_decorrelate` should probably be >= 5.
+Each decorrelation step adds two clock cycles to the delta sigma modulator computation, make sure that
+
+	PWM period >= 15 + 2*n_decorrelate
+
+or the computation will not have time to keep up with the PWM output, producing unexpected results.
+
+The design contains a triangle wave generator that can be used to generate an input signal without driving `u` values from the outside in real time.
+If `delta_u != 0`, `reg0 = u` is updated after each PWM pulse. `delta_u` is added to `u` once per PWM pulse until it would become >= 0xc000, then it is subtracted once per PWM pulse until `u` would become < 0x4000, and the pattern repeats. (`u` stays at the same value for one step when changing direction)
+The triangle wave is centered in the middle of the range to make it possible to avoid clipping into zero/negative pulse widths, since saturating the pulse width will cause the noise shaping to fail.
 
 ### Other pins
+The design has a few additional pins except those used by the register interface:
 
-- `sample_toggle_out` toggles each time `pulse_divider+1` PWM pulses have been output. This can be used to time transfers of new input signal values `u`.
-- `echo_out` echoes the value of `echo_in`. This could be used to test how a signal that is routed next to `dac_out` in the TT chip influences the noise performance.
+* `dac_out` is the actual output signal.
+* `sample_toggle_out` toggles each time `pulse_divider+1` PWM pulses have been output. This can be used to time transfers of new input signal values `u`.
+* `echo_out` echoes the value of `echo_in`. This could be used to test how a signal that is routed next to `dac_out` in the TT chip influences the noise performance. (`dac_out` is routed through the TT mux between `echo_out` and `uio_oe[0]`, where the latter is tied to 1) Otherwise, keep `echo_in` at a fixed value.
+* `uo[7:0] = pulse_width` contains the pulse width calculated for the current pulse. Values between 128 and 191 will be output as a high signal on `dac_out` (saturate high), and values between 192 and 255 as a low signal (saturate low).
 
 ## How to test
 
 ## External hardware
 
 This project needs some way to use the `dac_out` output signal, and preferably to low pass filter it to filter out the high frequency noise.
-Mike's audio Pmod (https://github.com/MichaelBell/tt-audio-pmod) can be used to convert the output to an audio signal for listening and includes a low pass filter to reduce frequencies above the audible range.
+Mike's audio Pmod (https://github.com/MichaelBell/tt-audio-pmod) can be used to convert the output to an audio signal for listening and includes a low pass filter to reduce frequencies above the audible range. Connect it to the `uio` Pmod.
