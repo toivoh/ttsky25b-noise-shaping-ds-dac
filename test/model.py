@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: © 2025 Toivo Henningsson
 # SPDX-License-Identifier: Apache-2.0
 
-FRAC_BITS = 13
+FRAC_BITS = 14
 PWM_BITS  = 8
-IN_BITS = 20
+IN_BITS = 21
 LFSR_BITS = 22
 
 MIN_PERIOD = 15
