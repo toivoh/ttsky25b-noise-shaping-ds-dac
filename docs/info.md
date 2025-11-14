@@ -179,6 +179,31 @@ The design has a few additional pins except those used by the register interface
 * `echo_out` echoes the value of `echo_in`. This could be used to test how a signal that is routed next to `dac_out` in the TT chip influences the noise performance. (`dac_out` is routed through the TT mux between `echo_out` and `uio_oe[0]`, where the latter is tied to 1) Otherwise, keep `echo_in` at a fixed value.
 * `uo[7:0] = pulse_width` contains the pulse width calculated for the current pulse. Values between 128 and 191 will be output as a high signal on `dac_out` (saturate high), and values between 192 and 255 as a low signal (saturate low).
 
+## Choosing parameters
+
+First, assume that you have chosen values for `filter_mode`, `noise_mode`, `{ddr_en, pwm_mode}`, and `u_rshift`.
+It remains to choose the range to use for `u` and the value of `max_output`, and to evaluate the output gain and effective resolution.
+
+You probably want to limit `u` so that `output >= 1`. More generally, to achieve `y_min <= output <= y_max`, `u` should be limited according to
+
+	u >= 2^(9 + u_rshift) * (y_min + 2^n_z * error_amp - 0.5)
+	u <  2^(9 + u_rshift) * (y_max - 2^n_z * error_amp + 1.5)
+
+where
+
+	error_amp = 0.5 for noise source off
+				1.0 for rectangular noise
+				1.5 for triangular noise
+
+If using the built-in triangle wave generator, `0x4000 <= u < 0xc000`, and you have to check if the parameters result in a lower bound of `u` that is below `0x4000`.
+
+If you have an upper bound `u <= u_max`, then
+
+	y <= y_max = floor((u_in + 2^n_z * error_amp - 0.5)/2^14)
+	y <= y_max = floor(u_max/2^(9 + u_rshift) + 2^n_z * error_amp - 0.5)
+
+Once `y_max` is known, choose `max_output = y_max+1` (or greater, but there should be no need for that) to ensure that the output never reaches 100% duty cycle.
+
 ## How to test
 
 ## External hardware
